@@ -49,11 +49,13 @@ end)
 
 ### Callback
 
+You can register your own function which will be invoked after an element is stored or deleted:
+
 ```elixir
 cache = ConCache.start_link(callback: fn(data) -> ... end)
     
-ConCache.put(cache, key, value)         # calls fn with {:update, key, value}
-ConCache.delete(cache, key, value)      # calls fn with {:delete, key, value}
+ConCache.put(cache, key, value)         # fun will be called with {:update, key, value}
+ConCache.delete(cache, key, value)      # fun will be called with {:delete, key, value}
 ```
 
 ### TTL
@@ -65,9 +67,9 @@ cache = ConCache.start_link(
 )
 ```
 
-Creates separate linked process which will check item expiry every second. In this example, the default ttl for all items is 5 seconds. Since ttl_check is 1 second, the item lifetime might be at most 6 seconds.
+This example creates separate linked process which will check item expiry every second The default ttl for all cache items is 5 seconds. Since ttl_check is 1 second, the item lifetime might be at most 6 seconds.
 
-The item lifetime is renewed on every modification. However, reads don't extend ttl, but this can be changed when starting cache:
+The item lifetime is renewed on every modification. Reads don't extend ttl, but this can be changed when starting cache:
 
 ```elixir
 cache = ConCache.start_link(
