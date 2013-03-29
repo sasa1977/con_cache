@@ -117,7 +117,7 @@ The allowed types are set and ordered_set.
 
 ### Processes
 
-ConCache creates a couple of linked processes and returns a tuple containing corresponding pids, and some additional data. The processes are not supervised. If you want to have it supervised, I suggest to use a supervised parent process which will create the ConCache instance.
+ConCache creates a couple of linked processes and returns a tuple containing corresponding pids, and some additional data. To put the structure under supervisor, I suggest a supervised parent process which will create the ConCache instance.
 
 In my production system, I have one such process very high in the supervision tree. The ConCache instance is stored in the protected ets table accessible to every other process.
 
@@ -125,9 +125,9 @@ In my production system, I have one such process very high in the supervision tr
 
 To provide isolation, custom implementation of mutex is developed. This enables that each update operation is executed in the caller process, without the need to send data to another sync process.
 
-When a modification operation is called, the ConCache first acquires the lock and then perform the operation. The acquiring is done using the pool of lock processes which are spawn\_linked when the cache is started. By default, the pool contains 10 processes (can be altered with the _lock\_balancers_ parameter).
+When a modification operation is called, the ConCache first acquires the lock and then performs the operation. The acquiring is done using the pool of lock processes which are spawn\_linked when the cache is started. By default, the pool contains 10 processes (can be altered with the _lock\_balancers_ parameter).
 
-If the lock is not acquired in a predefined time (default = 5 seconds) an exception will be generated.
+If the lock is not acquired in a predefined time (default = 5 seconds, alter with _acquire\_lock\_timeout_ parameter) an exception will be generated.
 
 You can use explicit isolation to perform isolated reads if needed. In addition, you can use your own lock ids to implement bigger granularity:
 
@@ -150,11 +150,13 @@ The isolation operations can be arbitrarily nested, although I wouldn't recommen
 
 ### TTL
 
-When ttl is configured, a ttl\_manager process is spawn linked. It works in discrete steps using :erlang.send\_after, which allows it to do fairly small amount of work in each step. 
+When ttl is configured, a ttl\_manager process is spawn linked. It works in discrete steps using :erlang.send\_after to trigger the next step. 
 
-When an item ttl is set, a ttl\_manager receives a message and stores it in its pending hash structure without doing anything else. Therefore, repeated touching of items is not too expensive.
+When an item ttl is set, a ttl\_manager receives a message and stores it in its pending hash structure without doing anything else. Therefore, repeated touching of items is not very expensive.
 
-In the next discrete step, ttl\_manager first applies the pending sets to its internal state. Then it checks which items must expire at this step, purges them, and uses send_after to trigger the next step.
+In the next discrete step, ttl\_manager first applies the pending ttl set requests to its internal state. Then it checks which items must expire at this step, purges them, and calls :erlang.send_after to trigger the next step.
+
+This approach allows ttl manager to do fairly small amount of work in each discrete step.
 
 ### Consqeuences
 
