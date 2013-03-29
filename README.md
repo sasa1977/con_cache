@@ -29,6 +29,7 @@ end)
 # Similar to update, but executes provided function only if item exists. 
 # Otherwise returns {:error, :not_existing}
 ConCache.update_existing(cache, key, fn(old_value) ->
+  new_value
 end)
 
 
@@ -138,10 +139,12 @@ end)
 
 # Operation isolated on an arbitrary id. The id doesn't have to correspond to a cache item.
 ConCache.isolated(cache, my_lock_id, fn() ->
+  ...
 end)
 
 # Same as above, but immediately returns {:error, :locked} if lock could not be acquired.
 ConCache.try_isolated(cache, my_lock_id, fn() ->
+  ...
 end)
 ```
 
@@ -150,9 +153,9 @@ The isolation operations can be arbitrarily nested, although I wouldn't recommen
 
 ### TTL
 
-When ttl is configured, a ttl\_manager process is spawn linked. It works in discrete steps using :erlang.send\_after to trigger the next step. 
+When ttl is configured, ttl\_manager process is spawn linked. It works in discrete steps using :erlang.send\_after to trigger the next step. 
 
-When an item ttl is set, a ttl\_manager receives a message and stores it in its pending hash structure without doing anything else. Therefore, repeated touching of items is not very expensive.
+When an item ttl is set, ttl\_manager receives a message and stores it in its pending hash structure without doing anything else. Therefore, repeated touching of items is not very expensive.
 
 In the next discrete step, ttl\_manager first applies the pending ttl set requests to its internal state. Then it checks which items must expire at this step, purges them, and calls :erlang.send_after to trigger the next step.
 
