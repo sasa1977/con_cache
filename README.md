@@ -118,6 +118,12 @@ ConCache.start_link(ets_options: [
 
 The allowed types are set and ordered_set.
 
+Additionally, you can override con_cache, and access ets directly, for example to do dirty writes:
+
+```elixir
+:ets.insert(cache.ets, {key, value})
+```
+
 ### Processes
 
 ConCache creates a couple of linked processes and returns a tuple containing corresponding pids, and some additional data. To put the structure under supervisor, I suggest a supervised parent process which will create the ConCache instance.
