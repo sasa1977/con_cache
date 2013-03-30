@@ -69,7 +69,9 @@ defrecord ConCache, [
       ttl_check when is_integer(ttl_check) and ttl_check > 0 -> 
         {:ok, ttl_manager} = TtlManager.start_link(
           ttl_check: ttl_check,
-          on_expire: delete(cache, &1)
+          on_expire: fn(key) ->
+            isolated(cache, key, fn() -> do_delete(cache, key) end)
+          end
         )
         cache.ttl_manager(ttl_manager)
 
@@ -200,6 +202,11 @@ defrecord ConCache, [
     TtlManager.set_ttl(ttl_manager, key, ttl)
   end
   
+  defp clear_ttl(ConCache[ttl_manager: nil], _), do: :ok
+  defp clear_ttl(ConCache[ttl_manager: ttl_manager], key) do
+    TtlManager.clear_ttl(ttl_manager, key)
+  end
+  
 
   defp invoke_callback(ConCache[callback: nil], _), do: :ok
   defp invoke_callback(ConCache[callback: fun], data) when is_function(fun) do
@@ -241,7 +248,12 @@ defrecord ConCache, [
   end
   
   @spec dirty_delete(t, key) :: :ok
-  def dirty_delete(ConCache[ets: ets] = cache, key) do
+  def dirty_delete(cache, key) do
+    clear_ttl(cache, key)
+    do_delete(cache, key)
+  end
+  
+  defp do_delete(ConCache[ets: ets] = cache, key) do
     try do
       invoke_callback(cache, {:delete, key})
     after

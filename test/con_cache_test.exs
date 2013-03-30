@@ -124,6 +124,11 @@ defmodule ConCacheTest do
     ConCache.put(cache, :a, ConCacheItem.new(value: 1, ttl: 0))
     :timer.sleep(100)
     assert ConCache.get(cache, :a) == 1
+    
+    ConCache.put(cache, :a, 2)
+    ConCache.delete(cache, :a)
+    :timer.sleep(60)
+    assert ConCache.get(cache, :a) == nil
   end
 
   defp test_renew_ttl(cache, fun) do

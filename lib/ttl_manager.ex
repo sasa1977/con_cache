@@ -24,11 +24,20 @@ defmodule TtlManager do
     initial_state
   end
   
+  @spec clear_ttl(pid | atom, key) :: :ok
+  def clear_ttl(server, key) do
+    set_ttl(server, key, 0)
+  end
+  
   @spec set_ttl(pid | atom, key, ttl) :: :ok
   defcast set_ttl(key, ttl), state: State[pending_ttl_sets: pending_ttl_sets] = state do
-    state.pending_ttl_sets(Dict.put(pending_ttl_sets, key, ttl)) |>
+    Dict.update(pending_ttl_sets, key, ttl, queue_ttl_set(&1, ttl)) |>
+    state.pending_ttl_sets |>
     new_state
   end
+  
+  defp queue_ttl_set(existing, :renew), do: existing
+  defp queue_ttl_set(_, new_ttl), do: new_ttl
   
   defp apply_pending_ttls(State[pending_ttl_sets: pending_ttl_sets] = state) do
     state = Enum.reduce(pending_ttl_sets, state, fn({key, ttl}, state) ->
