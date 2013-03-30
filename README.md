@@ -46,7 +46,7 @@ ConCache.with_existing(cache, key, fn() ->
 end)
 ```
 
-Dirty modifiers are also provided, directly modify ets record without trying to acquire the row lock:
+Dirty modifiers operate directly on ets record without trying to acquire the row lock:
 
 ```elixir
 ConCache.dirty_put(cache, key, value)
