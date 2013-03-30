@@ -242,8 +242,12 @@ defrecord ConCache, [
   
   @spec dirty_delete(t, key) :: :ok
   def dirty_delete(ConCache[ets: ets] = cache, key) do
-    :ets.delete(ets, key)
-    invoke_callback(cache, {:delete, key})
+    try do
+      invoke_callback(cache, {:delete, key})
+    after
+      :ets.delete(ets, key)
+    end
+    
     :ok
   end
 
