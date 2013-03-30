@@ -127,17 +127,23 @@ defrecord ConCache, [
   @spec put(t, key, in_value) :: :ok
   def put(cache, key, value) do
     isolated(cache, key, fn() ->
-      do_store(cache, key, value)
+      dirty_put(cache, key, value)
     end)
   end
   
+  
   @spec insert_new(t, key, in_value) :: :ok | {:error, :already_exists}
   def insert_new(cache, key, value) do
-    update(cache, key, function do
-      (nil) -> value
-      (_) -> {:cancel_update, {:error, :already_exists}}
-    end)
-  end  
+    update(cache, key, do_insert_new(value, &1))
+  end
+  
+  @spec dirty_insert_new(t, key, in_value) :: :ok | {:error, :already_exists}
+  def dirty_insert_new(cache, key, value) do
+    dirty_update(cache, key, do_insert_new(value, &1))
+  end
+  
+  defp do_insert_new(value, nil), do: value
+  defp do_insert_new(_, _), do: {:cancel_update, {:error, :already_exists}}
 
   @spec update(t, key, updater) :: :ok
   def update(cache, key, fun) do
@@ -146,13 +152,23 @@ defrecord ConCache, [
     end)
   end
   
+  @spec dirty_update(t, key, updater) :: :ok
+  def dirty_update(cache, key, fun) do
+    do_update(cache, key, get(cache, key) |> fun.())
+  end
+  
   @spec update_existing(t, key, updater) :: :ok | {:error, :not_existing}
   def update_existing(cache, key, fun) do
     isolated(cache, key, fn() ->
-      with_existing(cache, key, fn(existing) ->
-        do_update(cache, key, fun.(existing))
-      end) || {:error, :not_existing}
+      dirty_update_existing(cache, key, fun)
     end)
+  end
+  
+  @spec dirty_update_existing(t, key, updater) :: :ok | {:error, :not_existing}
+  def dirty_update_existing(cache, key, fun) do
+    with_existing(cache, key, fn(existing) ->
+      do_update(cache, key, fun.(existing))
+    end) || {:error, :not_existing}
   end
 
   defp do_update(_, _, {:cancel_update, return_value}) do
@@ -160,22 +176,23 @@ defrecord ConCache, [
   end
 
   defp do_update(cache, key, ConCacheItem[] = new_value) do
-    do_store(cache, key, new_value)
+    dirty_put(cache, key, new_value)
   end
   
   defp do_update(cache, key, new_value) do
     do_update(cache, key, ConCacheItem.new(value: new_value, ttl: :renew))
   end
   
-  defp do_store(ConCache[ets: ets] = cache, key, ConCacheItem[ttl: ttl, value: value]) do
+  @spec dirty_put(t, key, in_value) :: :ok
+  def dirty_put(ConCache[ets: ets] = cache, key, ConCacheItem[ttl: ttl, value: value]) do
     set_ttl(cache, key, ttl)
     :ets.insert(ets, {key, value})
     invoke_callback(cache, {:update, key, value})
     :ok
   end
 
-  defp do_store(ConCache[ttl: ttl] = cache, key, value) do
-    do_store(cache, key, ConCacheItem.new(value: value, ttl: ttl))
+  def dirty_put(ConCache[ttl: ttl] = cache, key, value) do
+    dirty_put(cache, key, ConCacheItem.new(value: value, ttl: ttl))
   end
   
   defp set_ttl(ConCache[ttl_manager: nil], _, _), do: :ok
@@ -199,27 +216,35 @@ defrecord ConCache, [
 
   defp isolated_get_or_store(cache, key, fun) do
     isolated(cache, key, fn() ->
-      case get(cache, key) do
-        nil ->
-          new_value = fun.()
-          do_store(cache, key, new_value) 
-          value(new_value)
-
-        existing -> existing
-      end
+      dirty_get_or_store(cache, key, fun)
     end)
+  end
+  
+  @spec dirty_get_or_store(t, key, (() -> in_value)) :: value
+  def dirty_get_or_store(cache, key, fun) do
+    case get(cache, key) do
+      nil ->
+        new_value = fun.()
+        dirty_put(cache, key, new_value) 
+        value(new_value)
+
+      existing -> existing
+    end
   end
 
   defp value(ConCacheItem[value: value]), do: value
   defp value(value), do: value
 
   @spec delete(t, key) :: :ok
-  def delete(ConCache[ets: ets] = cache, key) do
-    isolated(cache, key, fn() -> 
-      :ets.delete(ets, key)
-      invoke_callback(cache, {:delete, key})
-      :ok
-    end)
+  def delete(cache, key) do
+    isolated(cache, key, fn() -> dirty_delete(cache, key) end)
+  end
+  
+  @spec dirty_delete(t, key) :: :ok
+  def dirty_delete(ConCache[ets: ets] = cache, key) do
+    :ets.delete(ets, key)
+    invoke_callback(cache, {:delete, key})
+    :ok
   end
 
   @spec with_existing(t, key, ((value) -> result)) :: nil | result

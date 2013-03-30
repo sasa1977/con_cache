@@ -1,8 +1,7 @@
 # ConCache
 
-ConCache (Concurrent Cache) is an ETS based key/value storage with following characteristics:
+ConCache (Concurrent Cache) is an ETS based key/value storage with following additional features:
 * row level isolated writes (inserts, read/modify/write updates, deletes)
-* dirty reads
 * TTL support
 * modification callbacks
 
@@ -45,6 +44,17 @@ end)
 ConCache.with_existing(cache, key, fn() ->
   ...
 end)
+```
+
+Dirty modifiers are also provided, directly modify ets record without trying to acquire the row lock:
+
+```elixir
+ConCache.dirty_put(cache, key, value)
+ConCache.dirty_insert_new(cache, key, value)
+ConCache.dirty_delete(cache, key)
+ConCache.dirty_update(cache, key, fn(old_value) -> ... end)
+ConCache.dirty_update_existing(cache, key, fn(old_value) -> ... end)
+ConCache.dirty_get_or_store(cache, key, fn() -> ... end)
 ```
 
 ### Callback
@@ -118,11 +128,13 @@ ConCache.start_link(ets_options: [
 
 The allowed types are set and ordered_set.
 
-Additionally, you can override con_cache, and access ets directly, for example to do dirty writes:
+Additionally, you can override con\_cache, and access ets directly:
 
 ```elixir
 :ets.insert(cache.ets, {key, value})
 ```
+
+Of course, this completely overrides additional con\_cache behavior, such as ttl, row locking and callbacks.
 
 ### Processes
 

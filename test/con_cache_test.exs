@@ -42,6 +42,33 @@ defmodule ConCacheTest do
     
     assert ConCache.get_all(cache) |> Enum.sort == [a: 3, b: 4]
   end
+  
+  test "dirty" do
+    cache = ConCache.start_link
+
+    assert ConCache.dirty_put(cache, :a, 1) == :ok
+    assert ConCache.get(cache, :a) == 1
+    
+    assert ConCache.dirty_insert_new(cache, :b, 2) == :ok
+    assert ConCache.get(cache, :b) == 2
+    assert ConCache.dirty_insert_new(cache, :b, 3) == {:error, :already_exists}
+    assert ConCache.get(cache, :b) == 2
+    assert ConCache.dirty_delete(cache, :b) == :ok
+    assert ConCache.get(cache, :b) == nil
+        
+    assert ConCache.dirty_update(cache, :a, &1 + 1) == :ok
+    assert ConCache.get(cache, :a) == 2
+
+    assert ConCache.dirty_update_existing(cache, :a, &1 + 1) == :ok
+    assert ConCache.get(cache, :a) == 3
+    
+    assert ConCache.dirty_update_existing(cache, :b, &1 + 1) == {:error, :not_existing}
+    assert ConCache.get(cache, :b) == nil
+        
+    assert ConCache.dirty_get_or_store(cache, :a, fn() -> :dummy end) == 3
+    assert ConCache.dirty_get_or_store(cache, :b, fn() -> 4 end) == 4
+    assert ConCache.get(cache, :b) == 4
+  end
 
   test "ets_options" do
     cache = ConCache.start_link(ets_options: [:named_table, {:name, :test_name}])
