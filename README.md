@@ -186,7 +186,7 @@ This approach allows ttl manager to do fairly small amount of work in each discr
 ### Consqeuences
 
 Due to the locking and ttl algorithms just described, some additional processing will occur in ConCache internal processes. The work is fairly optimized, but I didn't invest too much time in it.
-For example, all processes currently use pure functional structures such as HashDict, :gb_trees and :sets. This could probably be replaced with internal ets table to make it work even faster, but I didn't try it.
+For example, lock processes currently use pure functional structures such as HashDict, :gb_trees and :sets. This could probably be replaced with internal ets table to make it work faster, but I didn't try it.
 
 Due to lock and ttl inner workings, multiple copies of each key exist in memory. Therefore, I recommend avoiding complex keys.
 

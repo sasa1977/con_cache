@@ -9,8 +9,8 @@ defmodule TtlManager do
   defrecord State, [
     ttl_check: :timer.seconds(1), 
     current_time: 1,
-    pending: HashDict.new, 
-    ttls: HashDict.new,
+    pending: nil, 
+    ttls: nil,
     on_expire: nil,
     pending_ttl_sets: HashDict.new
   ]
@@ -19,7 +19,10 @@ defmodule TtlManager do
   @spec start_link(options) :: {:ok, pid}
 
   def init(options) do
-    State.new(options) |>
+    State.new(options ++ [
+      pending: :ets.new(:ttl_manager_pending, [:private, :bag]),
+      ttls: :ets.new(:ttl_manager_ttls, [:private, :set])
+    ]) |>
     queue_check |>
     initial_state
   end
@@ -40,7 +43,7 @@ defmodule TtlManager do
   defp queue_ttl_set(_, new_ttl), do: new_ttl
   
   defp apply_pending_ttls(State[pending_ttl_sets: pending_ttl_sets] = state) do
-    state = Enum.reduce(pending_ttl_sets, state, fn({key, ttl}, state) ->
+    Enum.each(pending_ttl_sets, fn({key, ttl}) ->
       do_set_ttl(state, key, ttl)
     end)
     
@@ -55,27 +58,28 @@ defmodule TtlManager do
   end
   
   defp do_set_ttl(state, key, ttl) do
-    remove_pending(state, key) |>
-    store_ttl(key, ttl)
+    remove_pending(state, key)
+    store_ttl(state, key, ttl)
   end
   
   defp item_ttl(State[ttls: ttls], key) do
-    case ttls[key] do
-      {_, ttl} -> ttl
+    case :ets.lookup(ttls, key) do
+      [{^key, {_, ttl}}] -> ttl
+      _ -> nil
+    end
+  end
+  
+  defp item_expiry_time(State[ttls: ttls], key) do
+    case :ets.lookup(ttls, key) do
+      [{^key, {item_expiry_time, _}}] -> item_expiry_time
       _ -> nil
     end
   end
 
-  defp remove_pending(State[pending: pending, ttls: ttls] = state, key) do
-    case ttls[key] do
-      nil -> state
-      {expiry_time, _} ->
-        case pending[expiry_time] do
-          nil -> state
-          items ->
-            Dict.put(pending, expiry_time, :sets.del_element(key, items)) |>
-            state.pending
-        end
+  defp remove_pending(State[pending: pending] = state, key) do
+    case item_expiry_time(state, key) do
+      nil -> :ok
+      item_expiry_time -> :ets.delete_object(pending, {item_expiry_time, key})
     end
   end
 
@@ -85,15 +89,8 @@ defmodule TtlManager do
     is_integer(ttl) and ttl > 0
   ) do
     expiry_time = expiry_time(state, ttl)
-
-    state.
-      ttls(Dict.put(ttls, key, {expiry_time, ttl})).
-      pending(
-        Dict.update(pending, expiry_time,
-          :sets.from_list([key]),
-          :sets.add_element(key, &1)
-        )
-      )
+    :ets.insert(ttls, {key, {expiry_time, ttl}})
+    :ets.insert(pending, {expiry_time, key})
   end
 
   defp expiry_time(State[current_time: current_time, ttl_check: ttl_check], ttl) do
@@ -127,42 +124,42 @@ defmodule TtlManager do
   end
   
   defp increase_time(State[current_time: (2 <<< 15) - 1] = state) do
-    state |>
-    normalize_pending |>
-    normalize_ttls |>
-    reset_time
+    normalize_pending(state)
+    normalize_ttls(state)
+    state.current_time(0)
   end
   
   defp increase_time(State[current_time: current_time] = state) do
     state.current_time(current_time + 1)
   end
   
-  defp normalize_pending(State[current_time: current_time, pending: pending] = state) do
-    Enum.reduce(pending, HashDict.new, fn({time, value}, pending_acc) ->
-      Dict.put(pending_acc, time - current_time, value)
-    end) |>
-    state.pending
+  defp normalize_pending(State[current_time: current_time, pending: pending]) do
+    all_pending = :ets.tab2list(pending)
+    :ets.delete_all_objects(pending)
+    Enum.each(all_pending, fn({time, value}) ->
+      :ets.insert(pending, {time - current_time, value})
+    end)
   end
   
-  defp normalize_ttls(State[current_time: current_time, ttls: ttls] = state) do
-    Enum.reduce(ttls, HashDict.new, fn({key, {expiry_time, ttl}}, ttl_acc) ->
-      Dict.put(ttl_acc, key, {expiry_time - current_time, ttl})
-    end) |>
-    state.ttls
+  defp normalize_ttls(State[current_time: current_time, ttls: ttls]) do
+    all_ttls = :ets.tab2list(ttls)
+    :ets.delete_all_objects(ttls)
+    Enum.each(all_ttls, fn({key, {expiry_time, ttl}}) ->
+      :ets.insert(ttls, {key, {expiry_time - current_time, ttl}})
+    end)
+  end
+
+  defp purge(State[current_time: current_time, pending: pending, ttls: ttls, on_expire: on_expire] = state) do
+    Enum.each(currently_pending(state), fn(key) ->
+      on_expire.(key)
+      :ets.delete(ttls, key)
+    end)
+    :ets.delete(pending, current_time)
+    state
   end
   
-  defp reset_time(State[] = state), do: state.current_time(0)
-
-  defp purge(State[current_time: current_time, pending: pending] = state) do
-    Enum.reduce(
-      :sets.to_list(pending[current_time] || :sets.new),
-      state.update_pending(Dict.delete(&1, current_time)),
-      function(:do_purge, 2)
-    )
-  end
-
-  defp do_purge(key, State[ttls: ttls, on_expire: on_expire] = state) do
-    on_expire.(key)
-    state.ttls(Dict.delete(ttls, key))
+  defp currently_pending(State[pending: pending, current_time: current_time]) do
+    :ets.lookup(pending, current_time) |>
+    Enum.map(fn({_, key}) -> key end)
   end
 end
