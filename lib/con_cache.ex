@@ -1,11 +1,5 @@
 defrecord ConCacheItem, value: nil, ttl: 0
 
-defrecord EtsOptions, name: :con_cache, type: :set, options: [:public] do
-  def append_option(option, __MODULE__[options: options] = this) do
-    this.options([option | options])
-  end
-end
-
 defrecord ConCache, [
   :ets, :lock, :ttl_manager, :ttl, :acquire_lock_timeout, :callback, :touch_on_read
 ] do
@@ -44,6 +38,12 @@ defrecord ConCache, [
   defp create_ets(ets_options) do
     parsed_options = parse_ets_options(ets_options)
     :ets.new(parsed_options.name, [parsed_options.type | parsed_options.options])
+  end
+  
+  defrecord EtsOptions, name: :con_cache, type: :set, options: [:public] do
+    def append_option(option, __MODULE__[options: options] = this) do
+      this.options([option | options])
+    end
   end
   
   defp parse_ets_options(ets_options) do
