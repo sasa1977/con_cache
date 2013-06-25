@@ -83,7 +83,7 @@ defmodule Lock do
   end
 
   defp can_lock?(_, Item[locked: nil]), do: true
-  defp can_lock?(caller, Item[locked: {^caller, _}]), do: true
+  defp can_lock?(caller, Item[locked: {locked_caller, _}]) when caller == locked_caller, do: true
   defp can_lock?(_, _), do: false
 
   defp register_to_item(State[items: items] = state, caller, id) do
@@ -96,7 +96,7 @@ defmodule Lock do
     item.locked({caller, 1})
   end
   
-  defp add_process_to_item(caller, id, Item[locked: {^caller, count}] = item) do
+  defp add_process_to_item(caller, id, Item[locked: {locked_caller, count}] = item) when caller == locked_caller do
     caller <- {:lock, id, self, :acquired}
     item.locked({caller, count + 1})
   end
@@ -123,8 +123,8 @@ defmodule Lock do
   end
   
   defp remove_process_from_item(
-    state, caller, {:force, id}, Item[locked: {^caller, _}] = item
-  ) do
+    state, caller, {:force, id}, Item[locked: {locked_caller, _}] = item
+  ) when caller == locked_caller do
     remove_process_from_item(state, caller, id, item.locked({caller, 1}))
   end
 
@@ -133,8 +133,8 @@ defmodule Lock do
   end
 
   defp remove_process_from_item(
-    state, caller, id, Item[pending: pending, locked: {^caller, 1}] = item
-  ) do
+    state, caller, id, Item[pending: pending, locked: {locked_caller, 1}] = item
+  ) when caller == locked_caller do
     case :gb_trees.size(pending) do
       0 -> item.locked(nil)
       _ ->
@@ -144,7 +144,9 @@ defmodule Lock do
     store_item(id, state)
   end
   
-  defp remove_process_from_item(state, caller, id, Item[locked: {^caller, count}] = item) do
+  defp remove_process_from_item(
+    state, caller, id, Item[locked: {locked_caller, count}] = item
+  ) when caller == locked_caller do
     item.locked({caller, count - 1}) |>
     store_item(id, state)
   end
