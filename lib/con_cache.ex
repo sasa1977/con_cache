@@ -50,7 +50,7 @@ defrecord ConCache, [
     Enum.reduce(
       ets_options,
       EtsOptions.new,
-        function do
+        fn
           (:named_table, acc) -> acc.append_option(:named_table)
           (:compressed, acc) -> acc.append_option(:compressed)
           ({:heir, _} = opt, acc) -> acc.append_option(opt)

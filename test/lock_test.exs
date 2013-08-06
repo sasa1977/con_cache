@@ -61,7 +61,7 @@ defmodule LockTest do
     
     assert conduct_test(
       elem(Lock.start_link, 1),
-      function do
+      fn
         (3) -> throw(:exit)
         _ -> :ok
       end
@@ -75,14 +75,14 @@ defmodule LockTest do
     
     assert conduct_test(
       elem(Lock.start_link, 1),
-      function do
+      fn
         (4) -> exit(:kill)
         _ -> :ok
       end
     ) == [{0,18},{1,18},{2,15}]
   end
 
-  defp conduct_test(lock, custom // fn(_) -> nil end, body // function(default_body/3)) do
+  defp conduct_test(lock, custom // fn(_) -> nil end, body // &default_body/3) do
     ets = :ets.new(:test, [:public, :set])
 
     body.(ets, lock, custom)
