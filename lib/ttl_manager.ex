@@ -34,7 +34,7 @@ defmodule TtlManager do
   
   @spec set_ttl(pid | atom, key, ttl) :: :ok
   defcast set_ttl(key, ttl), state: State[pending_ttl_sets: pending_ttl_sets] = state do
-    Dict.update(pending_ttl_sets, key, ttl, queue_ttl_set(&1, ttl)) |>
+    Dict.update(pending_ttl_sets, key, ttl, &queue_ttl_set(&1, ttl)) |>
     state.pending_ttl_sets |>
     new_state
   end

@@ -24,15 +24,15 @@ defmodule ConCacheTest do
     assert ConCache.with_existing(cache, :a, fn(a) -> {:ok, a} end) == {:ok, 1}
     assert ConCache.with_existing(cache, :b, fn(a) -> {:ok, a} end) == nil
     
-    assert ConCache.update(cache, :a, &1 + 1) == :ok
+    assert ConCache.update(cache, :a, &(&1 + 1)) == :ok
     assert ConCache.get(cache, :a) == 2
 
     assert ConCache.update(cache, :a, fn(_) -> {:cancel_update, false} end) == false
     
-    assert ConCache.update_existing(cache, :a, &1 + 1) == :ok
+    assert ConCache.update_existing(cache, :a, &(&1 + 1)) == :ok
     assert ConCache.get(cache, :a) == 3
     
-    assert ConCache.update_existing(cache, :b, &1 + 1) == {:error, :not_existing}
+    assert ConCache.update_existing(cache, :b, &(&1 + 1)) == {:error, :not_existing}
     assert ConCache.get(cache, :b) == nil
         
     assert ConCache.get_or_store(cache, :a, fn() -> :dummy end) == 3
@@ -56,13 +56,13 @@ defmodule ConCacheTest do
     assert ConCache.dirty_delete(cache, :b) == :ok
     assert ConCache.get(cache, :b) == nil
         
-    assert ConCache.dirty_update(cache, :a, &1 + 1) == :ok
+    assert ConCache.dirty_update(cache, :a, &(&1 + 1)) == :ok
     assert ConCache.get(cache, :a) == 2
 
-    assert ConCache.dirty_update_existing(cache, :a, &1 + 1) == :ok
+    assert ConCache.dirty_update_existing(cache, :a, &(&1 + 1)) == :ok
     assert ConCache.get(cache, :a) == 3
     
-    assert ConCache.dirty_update_existing(cache, :b, &1 + 1) == {:error, :not_existing}
+    assert ConCache.dirty_update_existing(cache, :b, &(&1 + 1)) == {:error, :not_existing}
     assert ConCache.get(cache, :b) == nil
         
     assert ConCache.dirty_get_or_store(cache, :a, fn() -> :dummy end) == 3
@@ -113,8 +113,8 @@ defmodule ConCacheTest do
     assert ConCache.get(cache, :a) == nil
     
     test_renew_ttl(cache, fn() -> ConCache.put(cache, :a, 1) end)
-    test_renew_ttl(cache, fn() -> ConCache.update(cache, :a, &1 + 1) end)
-    test_renew_ttl(cache, fn() -> ConCache.update_existing(cache, :a, &1 + 1) end)
+    test_renew_ttl(cache, fn() -> ConCache.update(cache, :a, &(&1 + 1)) end)
+    test_renew_ttl(cache, fn() -> ConCache.update_existing(cache, :a, &(&1 + 1)) end)
     test_renew_ttl(cache, fn() -> ConCache.touch(cache, :a) end)
     
     ConCache.put(cache, :a, ConCacheItem.new(value: 1, ttl: 20))

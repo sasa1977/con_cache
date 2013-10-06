@@ -112,8 +112,8 @@ defmodule Lock do
 
   defp store_item(Item[locked: locked, pending: pending] = item, id, State[] = state) do
     case locked == nil and :gb_trees.size(pending) do
-      0 -> state.update_items(Dict.delete(&1, id))
-      _ -> state.update_items(Dict.put(&1, id, item))
+      0 -> state.update_items(&Dict.delete(&1, id))
+      _ -> state.update_items(&Dict.put(&1, id, item))
     end
   end
 

@@ -136,12 +136,12 @@ defrecord ConCache, [
   
   @spec insert_new(t, key, in_value) :: :ok | {:error, :already_exists}
   def insert_new(cache, key, value) do
-    update(cache, key, do_insert_new(value, &1))
+    update(cache, key, &do_insert_new(value, &1))
   end
   
   @spec dirty_insert_new(t, key, in_value) :: :ok | {:error, :already_exists}
   def dirty_insert_new(cache, key, value) do
-    dirty_update(cache, key, do_insert_new(value, &1))
+    dirty_update(cache, key, &do_insert_new(value, &1))
   end
   
   defp do_insert_new(value, nil), do: value
