@@ -64,8 +64,8 @@ You can register your own function which will be invoked after an element is sto
 ```elixir
 cache = ConCache.start_link(callback: fn(data) -> ... end)
     
-ConCache.put(cache, key, value)         # fun will be called with {:update, key, value}
-ConCache.delete(cache, key)             # fun will be called with {:delete, key}
+ConCache.put(cache, key, value)         # fun will be called with {:update, cache, key, value}
+ConCache.delete(cache, key)             # fun will be called with {:delete, cache, key}
 ```
 
 The delete callback is invoked before the item is deleted, so you still have the chance to fetch the value from the cache and do something with it.

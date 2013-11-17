@@ -189,7 +189,7 @@ defrecord ConCache, [
   def dirty_put(ConCache[ets: ets] = cache, key, ConCacheItem[ttl: ttl, value: value]) do
     set_ttl(cache, key, ttl)
     :ets.insert(ets, {key, value})
-    invoke_callback(cache, {:update, key, value})
+    invoke_callback(cache, {:update, cache, key, value})
     :ok
   end
 
@@ -255,7 +255,7 @@ defrecord ConCache, [
   
   defp do_delete(ConCache[ets: ets] = cache, key) do
     try do
-      invoke_callback(cache, {:delete, key})
+      invoke_callback(cache, {:delete, cache, key})
     after
       :ets.delete(ets, key)
     end
