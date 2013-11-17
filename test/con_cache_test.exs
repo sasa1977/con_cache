@@ -91,16 +91,16 @@ defmodule ConCacheTest do
     cache = ConCache.start_link(callback: fn(data) -> self <- data end)
     
     ConCache.put(cache, :a, 1)
-    assert_receive {:update, :a, 1}
+    assert_receive {:update, cache, :a, 1}
 
     ConCache.update(cache, :a, fn(_) -> 2 end)
-    assert_receive {:update, :a, 2}
+    assert_receive {:update, cache, :a, 2}
 
     ConCache.update_existing(cache, :a, fn(_) -> 3 end)
-    assert_receive {:update, :a, 3}
+    assert_receive {:update, cache, :a, 3}
 
     ConCache.delete(cache, :a)
-    assert_receive {:delete, :a}
+    assert_receive {:delete, _cache, :a}
   end
 
   test "ttl" do
