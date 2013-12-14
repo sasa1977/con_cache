@@ -122,8 +122,9 @@ defmodule TtlManager do
   def handle_info(_, state) do
     new_state(state)
   end
-  
-  defp increase_time(State[current_time: (2 <<< 15) - 1] = state) do
+ 
+  @current_time (2 <<< 15) - 1 
+  defp increase_time(State[current_time: @current_time] = state) do
     normalize_pending(state)
     normalize_ttls(state)
     state.current_time(0)
