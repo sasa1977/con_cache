@@ -29,6 +29,17 @@ defrecord ConCache, [
     create_ttl_manager(options)
   end
 
+  @spec stop(t) :: :ok
+  def stop(ConCache[] = cache) do
+    :ets.delete(cache.ets)
+    BalancedLock.stop(cache.lock)
+    if cache.ttl_manager do
+      TtlManager.stop(cache.ttl_manager)
+    end
+
+    :ok
+  end
+
   defp check_ets(ets) do
     if (:ets.info(ets, :keypos) > 1), do: throw({:error, :invalid_keypos})
     if (:ets.info(ets, :protection) != :public), do: throw({:error, :invalid_protection})
@@ -69,6 +80,7 @@ defrecord ConCache, [
       ttl_check when is_integer(ttl_check) and ttl_check > 0 -> 
         {:ok, ttl_manager} = TtlManager.start_link(
           ttl_check: ttl_check,
+          time_size: options[:time_size],
           on_expire: fn(key) ->
             isolated(cache, key, fn() -> do_delete(cache, key) end)
           end

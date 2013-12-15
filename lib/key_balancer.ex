@@ -11,6 +11,11 @@ defmodule KeyBalancer do
     list_to_tuple
   end
 
+  def each(balancer, fun) do
+    [_ | [_ | items]] = tuple_to_list(balancer)
+    Enum.each(items, &(fun.(&1)))
+  end
+
   @spec exec(t, key, job) :: result
   def exec(balancer, id, fun) do
     index = :erlang.phash2(id, elem(balancer, 1)) + 2

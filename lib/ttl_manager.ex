@@ -11,6 +11,7 @@ defmodule TtlManager do
     current_time: 1,
     pending: nil, 
     ttls: nil,
+    max_time: nil,
     on_expire: nil,
     pending_ttl_sets: HashDict.new
   ]
@@ -21,10 +22,15 @@ defmodule TtlManager do
   def init(options) do
     State.new(options ++ [
       pending: :ets.new(:ttl_manager_pending, [:private, :bag]),
-      ttls: :ets.new(:ttl_manager_ttls, [:private, :set])
-    ]) |>
-    queue_check |>
-    initial_state
+      ttls: :ets.new(:ttl_manager_ttls, [:private, :set]),
+      max_time: (1 <<< (options[:time_size] || 16)) - 1
+    ])
+    |> queue_check
+    |> initial_state
+  end
+
+  defcast stop, state: state do
+    {:stop, :normal, state}
   end
   
   @spec clear_ttl(pid | atom, key) :: :ok
@@ -123,7 +129,7 @@ defmodule TtlManager do
     new_state(state)
   end
   
-  defp increase_time(State[current_time: (2 <<< 15) - 1] = state) do
+  defp increase_time(State[current_time: max, max_time: max] = state) do
     normalize_pending(state)
     normalize_ttls(state)
     state.current_time(0)
@@ -137,7 +143,7 @@ defmodule TtlManager do
     all_pending = :ets.tab2list(pending)
     :ets.delete_all_objects(pending)
     Enum.each(all_pending, fn({time, value}) ->
-      :ets.insert(pending, {time - current_time, value})
+      :ets.insert(pending, {time - current_time - 1, value})
     end)
   end
   
@@ -145,7 +151,7 @@ defmodule TtlManager do
     all_ttls = :ets.tab2list(ttls)
     :ets.delete_all_objects(ttls)
     Enum.each(all_ttls, fn({key, {expiry_time, ttl}}) ->
-      :ets.insert(ttls, {key, {expiry_time - current_time, ttl}})
+      :ets.insert(ttls, {key, {expiry_time - current_time - 1, ttl}})
     end)
   end
 

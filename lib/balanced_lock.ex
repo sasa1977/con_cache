@@ -12,6 +12,10 @@ defmodule BalancedLock do
     end)
   end
 
+  def stop(balancer) do
+    KeyBalancer.each(balancer, &Lock.stop/1)
+  end
+
   @spec exec(t, key, job) :: result
   @spec exec(t, key, timeout, job) :: result
   def exec(balancer, id, timeout // 5000, fun) do

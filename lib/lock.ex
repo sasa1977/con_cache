@@ -15,6 +15,10 @@ defmodule Lock do
     initial_state(State.new)
   end
 
+  defcast stop, state: state do
+    {:stop, :normal, state}
+  end
+
   @spec exec(pid | atom, key, timeout, job) :: result
   @spec exec(pid | atom, key, job) :: result
   def exec(server, id, timeout // 5000, fun) do

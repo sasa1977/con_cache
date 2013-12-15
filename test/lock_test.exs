@@ -1,7 +1,7 @@
 Code.require_file "../test_helper.exs", __FILE__
 
 defmodule LockTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "basic" do
     assert conduct_test(elem(Lock.start_link, 1)) == [{0,18},{1,22},{2,15}]
