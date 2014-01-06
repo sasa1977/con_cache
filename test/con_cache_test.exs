@@ -1,5 +1,3 @@
-Code.require_file "../test_helper.exs", __FILE__
-
 defmodule ConCacheTest do
   use ExUnit.Case, async: false
 
@@ -9,20 +7,6 @@ defmodule ConCacheTest do
     ConCache.stop(cache)
   end
 
-
-  test "start/stop" do
-    original_process_count = :erlang.system_info(:process_count)
-    cache = ConCache.start_link(ttl_check: 10, ttl: 50)
-    :timer.sleep(100)
-
-    new_process_count = :erlang.system_info(:process_count)
-    assert new_process_count > original_process_count
-    ConCache.stop(cache)
-
-    :timer.sleep(100)
-    assert :erlang.system_info(:process_count) >= original_process_count
-    assert :erlang.system_info(:process_count) <= new_process_count
-  end
 
   test "initial" do
     with_cache(fn(cache) ->
