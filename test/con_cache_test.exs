@@ -139,7 +139,7 @@ defmodule ConCacheTest do
 
   test "callback" do
     with_cache(
-      [callback: fn(data) -> self <- data end], 
+      [callback: &send(self, &1)], 
       fn(cache) ->
         ConCache.put(cache, :a, 1)
         assert_receive {:update, ^cache, :a, 1}

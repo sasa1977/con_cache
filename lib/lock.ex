@@ -78,7 +78,7 @@ defmodule Lock do
 
   defp maybe_lock(true, state, caller, id), do: do_lock(state, caller, id)
   defp maybe_lock(false, state, caller, id) do
-    caller <- {:lock, id, self, :not_acquired}
+    send(caller, {:lock, id, self, :not_acquired})
     state
   end
 
@@ -96,12 +96,12 @@ defmodule Lock do
   end
 
   defp add_process_to_item(caller, id, Item[locked: nil] = item) do
-    caller <- {:lock, id, self, :acquired}
+    send(caller, {:lock, id, self, :acquired})
     item.locked({caller, 1})
   end
   
   defp add_process_to_item(caller, id, Item[locked: {caller, count}] = item) do
-    caller <- {:lock, id, self, :acquired}
+    send(caller, {:lock, id, self, :acquired})
     item.locked({caller, count + 1})
   end
 
