@@ -3,7 +3,7 @@ defmodule TtlManager do
   @type key :: any
   @type ttl :: non_neg_integer | :renew
   
-  use ExActor
+  use ExActor.Tolerant
   use Bitwise
   
   defrecord State, [
@@ -40,9 +40,9 @@ defmodule TtlManager do
   
   @spec set_ttl(pid | atom, key, ttl) :: :ok
   defcast set_ttl(key, ttl), state: State[pending_ttl_sets: pending_ttl_sets] = state do
-    Dict.update(pending_ttl_sets, key, ttl, &queue_ttl_set(&1, ttl)) |>
-    state.pending_ttl_sets |>
-    new_state
+    Dict.update(pending_ttl_sets, key, ttl, &queue_ttl_set(&1, ttl)) 
+    |> state.pending_ttl_sets 
+    |> new_state
   end
   
   defp queue_ttl_set(existing, :renew), do: existing
@@ -116,18 +116,16 @@ defmodule TtlManager do
     state
   end
 
-  def handle_info(:check_purge, state) do
-    state |>
-    apply_pending_ttls |>
-    increase_time |>
-    purge |>
-    queue_check |>
-    new_state
+  definfo :check_purge, state: state do
+    state 
+    |> apply_pending_ttls 
+    |> increase_time 
+    |> purge 
+    |> queue_check 
+    |> new_state
   end
   
-  def handle_info(_, state) do
-    new_state(state)
-  end
+  definfo _, do: noreply
   
   defp increase_time(State[current_time: max, max_time: max] = state) do
     normalize_pending(state)
@@ -165,7 +163,7 @@ defmodule TtlManager do
   end
   
   defp currently_pending(State[pending: pending, current_time: current_time]) do
-    :ets.lookup(pending, current_time) |>
-    Enum.map(fn({_, key}) -> key end)
+    :ets.lookup(pending, current_time) 
+    |> Enum.map(&elem(&1, 1))
   end
 end

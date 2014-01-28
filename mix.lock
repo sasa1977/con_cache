@@ -1,1 +1,1 @@
-[ "exactor": {:git, "git://github.com/sasa1977/exactor.git", "573baa559d074375900e686fc921c86fb60b1ff1", []} ]
+[ "exactor": {:git, "git://github.com/sasa1977/exactor.git", "6d93cc137a38eab016cc3b4f40ec781ecf0b6844", [tag: "0.2.0"]} ]

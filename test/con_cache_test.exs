@@ -81,7 +81,7 @@ defmodule ConCacheTest do
     with_cache(fn(cache) ->
       ConCache.put(cache, :a, 1)
       ConCache.put(cache, :b, 2)
-      assert ConCache.get_all(cache) |> Enum.sort == [a: 1, b: 2]
+      assert (ConCache.get_all(cache) |> Enum.sort) == [a: 1, b: 2]
     end)
   end
   

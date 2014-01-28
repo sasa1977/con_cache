@@ -85,7 +85,8 @@ defmodule LockTest do
 
     body.(ets, lock, custom)
 
-    :ets.tab2list(ets) |> Enum.sort
+    :ets.tab2list(ets) 
+    |> Enum.sort
   end
 
   defp default_body(ets, lock, custom) do

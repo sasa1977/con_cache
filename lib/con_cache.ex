@@ -25,8 +25,8 @@ defrecord ConCache, [
       acquire_lock_timeout: options[:acquire_lock_timeout] || 5000,
       callback: options[:callback],
       touch_on_read: options[:touch_on_read] || false
-    ) |>
-    create_ttl_manager(options)
+    ) 
+    |> create_ttl_manager(options)
   end
 
   @spec stop(t) :: :ok
@@ -162,13 +162,13 @@ defrecord ConCache, [
   @spec update(t, key, updater) :: :ok
   def update(cache, key, fun) do
     isolated(cache, key, fn() ->
-      do_update(cache, key, get(cache, key) |> fun.())
+      do_update(cache, key, fun.(get(cache, key)))
     end)
   end
   
   @spec dirty_update(t, key, updater) :: :ok
   def dirty_update(cache, key, fun) do
-    do_update(cache, key, get(cache, key) |> fun.())
+    do_update(cache, key, fun.(get(cache, key)))
   end
   
   @spec update_existing(t, key, updater) :: :ok | {:error, :not_existing}
