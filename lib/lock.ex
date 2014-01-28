@@ -4,16 +4,12 @@ defmodule Lock do
   @type job :: (() -> result)
   
   defrecordp :item, pending: :gb_trees.empty, locked: nil  
-  defrecord State, items: HashDict.new
+  defrecordp :state, items: HashDict.new
 
-  use ExActor.Tolerant
+  use ExActor.Tolerant, initial_state: state
 
   @spec start :: {:ok, pid}
   @spec start_link :: {:ok, pid}
-
-  def init(_) do
-    initial_state(State.new)
-  end
 
   defcast stop, state: state do
     {:stop, :normal, state}
@@ -82,7 +78,7 @@ defmodule Lock do
     state
   end
 
-  defp can_lock?(State[items: items], caller, id) do
+  defp can_lock?(state(items: items), caller, id) do
     can_lock?(caller, items[id] || item())
   end
 
@@ -90,7 +86,7 @@ defmodule Lock do
   defp can_lock?(caller, item(locked: {caller, _})), do: true
   defp can_lock?(_, _), do: false
 
-  defp register_to_item(State[items: items] = state, caller, id) do
+  defp register_to_item(state(items: items) = state, caller, id) do
     add_process_to_item(caller, id, items[id] || item()) 
     |> store_item(id, state)
   end
@@ -114,14 +110,14 @@ defmodule Lock do
     item(item, pending: :gb_trees.insert(key, caller, pending))
   end
 
-  defp store_item(item(locked: locked, pending: pending) = item, id, State[] = state) do
+  defp store_item(item(locked: locked, pending: pending) = item, id, state(items: items) = state) do
     case locked == nil and :gb_trees.size(pending) do
-      0 -> state.update_items(&Dict.delete(&1, id))
-      _ -> state.update_items(&Dict.put(&1, id, item))
+      0 -> state(state, items: Dict.delete(items, id))
+      _ -> state(state, items: Dict.put(items, id, item))
     end
   end
 
-  defcast unlock(caller, id), state: State[items: items] = state do
+  defcast unlock(caller, id), state: state(items: items) = state do
     remove_process_from_item(state, caller, id, items[id]) 
     |> new_state
   end
