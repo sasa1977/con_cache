@@ -3,7 +3,7 @@ defmodule Lock do
   @type result :: any
   @type job :: (() -> result)
   
-  defrecord Item, pending: :gb_trees.empty, locked: nil  
+  defrecordp :item, pending: :gb_trees.empty, locked: nil  
   defrecord State, items: HashDict.new
 
   use ExActor.Tolerant
@@ -83,38 +83,38 @@ defmodule Lock do
   end
 
   defp can_lock?(State[items: items], caller, id) do
-    can_lock?(caller, items[id] || Item.new)
+    can_lock?(caller, items[id] || item())
   end
 
-  defp can_lock?(_, Item[locked: nil]), do: true
-  defp can_lock?(caller, Item[locked: {caller, _}]), do: true
+  defp can_lock?(_, item(locked: nil)), do: true
+  defp can_lock?(caller, item(locked: {caller, _})), do: true
   defp can_lock?(_, _), do: false
 
   defp register_to_item(State[items: items] = state, caller, id) do
-    add_process_to_item(caller, id, items[id] || Item.new) 
+    add_process_to_item(caller, id, items[id] || item()) 
     |> store_item(id, state)
   end
 
-  defp add_process_to_item(caller, id, Item[locked: nil] = item) do
+  defp add_process_to_item(caller, id, item(locked: nil) = item) do
     send(caller, {:lock, id, self, :acquired})
-    item.locked({caller, 1})
+    item(item, locked: {caller, 1})
   end
   
-  defp add_process_to_item(caller, id, Item[locked: {caller, count}] = item) do
+  defp add_process_to_item(caller, id, item(locked: {caller, count}) = item) do
     send(caller, {:lock, id, self, :acquired})
-    item.locked({caller, count + 1})
+    item(item, locked: {caller, count + 1})
   end
 
-  defp add_process_to_item(caller, _, Item[locked: {locked, _}, pending: pending] = item)  when is_pid(locked) do
+  defp add_process_to_item(caller, _, item(locked: {locked, _}, pending: pending) = item)  when is_pid(locked) do
     key = case :gb_trees.size(pending) do
       0 -> 1
       _ -> (:gb_trees.largest(pending) |> elem(0)) + 1
     end
 
-    item.pending(:gb_trees.insert(key, caller, pending))
+    item(item, pending: :gb_trees.insert(key, caller, pending))
   end
 
-  defp store_item(Item[locked: locked, pending: pending] = item, id, State[] = state) do
+  defp store_item(item(locked: locked, pending: pending) = item, id, State[] = state) do
     case locked == nil and :gb_trees.size(pending) do
       0 -> state.update_items(&Dict.delete(&1, id))
       _ -> state.update_items(&Dict.put(&1, id, item))
@@ -127,9 +127,9 @@ defmodule Lock do
   end
   
   defp remove_process_from_item(
-    state, caller, {:force, id}, Item[locked: {caller, _}] = item
+    state, caller, {:force, id}, item(locked: {caller, _}) = item
   ) do
-    remove_process_from_item(state, caller, id, item.locked({caller, 1}))
+    remove_process_from_item(state, caller, id, item(item, locked: {caller, 1}))
   end
 
   defp remove_process_from_item(state, caller, {:force, id}, item) do
@@ -137,27 +137,28 @@ defmodule Lock do
   end
 
   defp remove_process_from_item(
-    state, caller, id, Item[pending: pending, locked: {caller, 1}] = item
+    state, caller, id, item(pending: pending, locked: {caller, 1}) = item
   ) do
     case :gb_trees.size(pending) do
-      0 -> item.locked(nil)
+      0 -> item(item, locked: nil)
       _ ->
         {_, next, remaining} = :gb_trees.take_smallest(pending)
-        add_process_to_item(next, id, item.locked(nil).pending(remaining))
+        add_process_to_item(next, id, item(item, locked: nil, pending: remaining))
     end 
     |> store_item(id, state)
   end
   
-  defp remove_process_from_item(state, caller, id, Item[locked: {caller, count}] = item) do
-    item.locked({caller, count - 1}) 
+  defp remove_process_from_item(state, caller, id, item(locked: {caller, count}) = item) do
+    item(item, locked: {caller, count - 1}) 
     |> store_item(id, state)
   end
 
-  defp remove_process_from_item(state, caller, id, Item[pending: pending] = item) do
-    item.pending(
-      Enum.filter(:gb_trees.to_list(pending), fn(pid) -> pid != caller end) 
-      |> :gb_trees.from_orddict
-    ) 
+  defp remove_process_from_item(state, caller, id, item(pending: pending) = item) do
+    item(item, 
+      pending:
+        Enum.filter(:gb_trees.to_list(pending), &(&1 != caller))
+        |> :gb_trees.from_orddict
+    )
     |> store_item(id, state)
   end
 end
