@@ -133,7 +133,7 @@ The allowed types are set and ordered_set.
 Additionally, you can override con\_cache, and access ets directly:
 
 ```elixir
-:ets.insert(cache.ets, {key, value})
+:ets.insert(ConCache.ets(cache), {key, value})
 ```
 
 Of course, this completely overrides additional con\_cache behavior, such as ttl, row locking and callbacks.
