@@ -45,31 +45,31 @@ defrecord ConCache, [
     if (:ets.info(ets, :protection) != :public), do: throw({:error, :invalid_protection})
     if (not (:ets.info(ets, :type) in [:set, :ordered_set])), do: throw({:error, :invalid_type})
   end
-  
-  defp create_ets(ets_options) do
-    parsed_options = parse_ets_options(ets_options)
-    :ets.new(parsed_options.name, [parsed_options.type | parsed_options.options])
+
+  defrecordp :ets_options, name: :con_cache, type: :set, options: [:public]
+
+  defp append_option(ets_options(options: options) = ets_options, option) do
+    ets_options(ets_options, options: [option | options])
   end
   
-  defrecord EtsOptions, name: :con_cache, type: :set, options: [:public] do
-    def append_option(option, __MODULE__[options: options] = this) do
-      this.options([option | options])
-    end
+  defp create_ets(input_options) do
+    ets_options(name: name, type: type, options: options) = parse_ets_options(input_options)
+    :ets.new(name, [type | options])
   end
   
-  defp parse_ets_options(ets_options) do
+  defp parse_ets_options(input_options) do
     Enum.reduce(
-      ets_options,
-      EtsOptions.new,
+      input_options,
+      ets_options(),
         fn
-          (:named_table, acc) -> acc.append_option(:named_table)
-          (:compressed, acc) -> acc.append_option(:compressed)
-          ({:heir, _} = opt, acc) -> acc.append_option(opt)
-          ({:write_concurrency, _} = opt, acc) -> acc.append_option(opt)
-          ({:read_concurrency, _} = opt, acc) -> acc.append_option(opt)
-          (:ordered_set, acc) -> acc.type(:ordered_set)
-          (:set, acc) -> acc.type(:set)
-          ({:name, name}, acc) -> acc.name(name)
+          (:named_table, acc) -> append_option(acc, :named_table)
+          (:compressed, acc) -> append_option(acc, :compressed)
+          ({:heir, _} = opt, acc) -> append_option(acc, opt)
+          ({:write_concurrency, _} = opt, acc) -> append_option(acc, opt)
+          ({:read_concurrency, _} = opt, acc) -> append_option(acc, opt)
+          (:ordered_set, acc) -> ets_options(acc, type: :ordered_set)
+          (:set, acc) -> ets_options(acc, type: :set)
+          ({:name, name}, acc) -> ets_options(acc, name: name)
           (other, _) -> throw({:invalid_ets_option, other})
         end
     )
