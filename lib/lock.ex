@@ -17,7 +17,7 @@ defmodule Lock do
 
   @spec exec(pid | atom, key, timeout, job) :: result
   @spec exec(pid | atom, key, job) :: result
-  def exec(server, id, timeout // 5000, fun) do
+  def exec(server, id, timeout \\ 5000, fun) do
     lock(server, self, id)
     try do
       wait_for_lock(server, id, timeout, fun)
@@ -36,7 +36,7 @@ defmodule Lock do
 
   @spec try_exec(pid | atom, key, job) :: result | {:lock, :not_acquired}
   @spec try_exec(pid | atom, key, timeout, job) :: result | {:lock, :not_acquired}
-  def try_exec(server, id, timeout // 5000, fun) do
+  def try_exec(server, id, timeout \\ 5000, fun) do
     try_lock(server, self, id)
     try_wait_for_lock(server, id, timeout, fun)
   end

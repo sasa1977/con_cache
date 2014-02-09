@@ -1,7 +1,7 @@
 defmodule ConCacheTest do
   use ExUnit.Case, async: false
 
-  defp with_cache(opts // [], fun) do
+  defp with_cache(opts \\ [], fun) do
     cache = ConCache.start_link(opts)
     fun.(cache)
     ConCache.stop(cache)

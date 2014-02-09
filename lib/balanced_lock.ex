@@ -18,7 +18,7 @@ defmodule BalancedLock do
 
   @spec exec(t, key, job) :: result
   @spec exec(t, key, timeout, job) :: result
-  def exec(balancer, id, timeout // 5000, fun) do
+  def exec(balancer, id, timeout \\ 5000, fun) do
     KeyBalancer.exec(balancer, id, fn(server) ->
       Lock.exec(server, id, timeout, fun)
     end)
@@ -26,7 +26,7 @@ defmodule BalancedLock do
 
   @spec try_exec(t, key, job) :: result
   @spec try_exec(t, key, timeout, job) :: result
-  def try_exec(balancer, id, timeout // 5000, fun) do
+  def try_exec(balancer, id, timeout \\ 5000, fun) do
     KeyBalancer.exec(balancer, id, fn(server) ->
       Lock.try_exec(server, id, timeout, fun)
     end)

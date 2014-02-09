@@ -16,7 +16,7 @@ defmodule ConCache do
   
   @spec start_link :: ConCache_t
   @spec start_link(options) :: ConCache_t
-  def start_link(options // []) do
+  def start_link(options \\ []) do
     ets = options[:ets] || create_ets(options[:ets_options] || [])
     check_ets(ets)
 

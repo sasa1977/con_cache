@@ -80,7 +80,7 @@ defmodule LockTest do
     ) == [{0,18},{1,18},{2,15}]
   end
 
-  defp conduct_test(lock, custom // fn(_) -> nil end, body // &default_body/3) do
+  defp conduct_test(lock, custom \\ fn(_) -> nil end, body \\ &default_body/3) do
     ets = :ets.new(:test, [:public, :set])
 
     body.(ets, lock, custom)
