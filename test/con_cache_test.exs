@@ -172,11 +172,11 @@ defmodule ConCacheTest do
           test_renew_ttl(cache, fn() -> ConCache.update_existing(cache, :a, &(&1 + 1)) end)
           test_renew_ttl(cache, fn() -> ConCache.touch(cache, :a) end)
 
-          ConCache.put(cache, :a, ConCacheItem.new(value: 1, ttl: 20))
+          ConCache.put(cache, :a, %ConCache.Item{value: 1, ttl: 20})
           :timer.sleep(40)
           assert ConCache.get(cache, :a) == nil
 
-          ConCache.put(cache, :a, ConCacheItem.new(value: 1, ttl: 0))
+          ConCache.put(cache, :a, %ConCache.Item{value: 1, ttl: 0})
           :timer.sleep(100)
           assert ConCache.get(cache, :a) == 1
 

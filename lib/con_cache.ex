@@ -1,14 +1,16 @@
-defrecord ConCacheItem, value: nil, ttl: 0
+defmodule ConCache.Item do
+  defstruct value: nil, ttl: 0
+end
 
 defmodule ConCache do
-  defrecordp :con_cache, ConCache, [
+  defstruct [
     :ets, :lock, :ttl_manager, :ttl, :acquire_lock_timeout, :callback, :touch_on_read
   ]
 
   @type options :: Keyword.t
   @type key :: any
   @type value :: any
-  @type in_value :: ConCacheItem.t | value
+  @type in_value :: ConCache.Item.t | value
   @type result :: any
   @type job :: (() -> result)
   @type updater :: ((value) -> {:cancel_update, result} | in_value)
@@ -20,22 +22,22 @@ defmodule ConCache do
     ets = options[:ets] || create_ets(options[:ets_options] || [])
     check_ets(ets)
 
-    con_cache(
+    %__MODULE__{
       ets: ets,
       lock: BalancedLock.start_link(options[:lock_balancers] || 10),
       ttl: options[:ttl] || 0,
       acquire_lock_timeout: options[:acquire_lock_timeout] || 5000,
       callback: options[:callback],
       touch_on_read: options[:touch_on_read] || false
-    )
+    }
     |> create_ttl_manager(options)
   end
 
   @spec ets(ConCache_t) :: any
-  def ets(con_cache(ets: ets)), do: ets
+  def ets(%__MODULE__{ets: ets}), do: ets
 
   @spec stop(ConCache_t) :: :ok
-  def stop(con_cache(ets: ets, lock: lock, ttl_manager: ttl_manager)) do
+  def stop(%__MODULE__{ets: ets, lock: lock, ttl_manager: ttl_manager}) do
     :ets.delete(ets)
     BalancedLock.stop(lock)
     if ttl_manager, do: TtlManager.stop(ttl_manager)
@@ -88,7 +90,7 @@ defmodule ConCache do
             isolated(cache, key, fn() -> do_delete(cache, key) end)
           end
         )
-        con_cache(cache, ttl_manager: ttl_manager)
+        %__MODULE__{cache | ttl_manager: ttl_manager}
 
       nil -> cache
     end
@@ -96,24 +98,24 @@ defmodule ConCache do
 
 
   @spec isolated(ConCache_t, key, job) :: result
-  def isolated(con_cache(acquire_lock_timeout: acquire_lock_timeout) = cache, key, fun) do
+  def isolated(%__MODULE__{acquire_lock_timeout: acquire_lock_timeout} = cache, key, fun) do
     isolated(cache, key, acquire_lock_timeout, fun)
   end
 
   @spec isolated(ConCache_t, key, timeout, job) :: result
-  def isolated(con_cache(lock: lock), key, acquire_lock_timeout, fun) do
+  def isolated(%__MODULE__{lock: lock}, key, acquire_lock_timeout, fun) do
     BalancedLock.exec(lock, key, acquire_lock_timeout, fun)
   end
 
   @spec try_isolated(ConCache_t, key, job) :: {:error, :locked} | result
-  def try_isolated(con_cache(acquire_lock_timeout: acquire_lock_timeout) = cache,
+  def try_isolated(%__MODULE__{acquire_lock_timeout: acquire_lock_timeout} = cache,
     key, on_success
   ) do
     try_isolated(cache, key, acquire_lock_timeout, on_success)
   end
 
   @spec try_isolated(ConCache_t, key, timeout, job) :: {:error, :locked} | result
-  def try_isolated(con_cache(lock: lock), key, acquire_lock_timeout, on_success) do
+  def try_isolated(%__MODULE__{lock: lock}, key, acquire_lock_timeout, on_success) do
     case BalancedLock.try_exec(lock, key, acquire_lock_timeout, on_success) do
       {:lock, :not_acquired} -> {:error, :locked}
       response -> response
@@ -122,7 +124,7 @@ defmodule ConCache do
 
 
   @spec get(ConCache_t, key) :: value
-  def get(con_cache(ets: ets) = cache, key) do
+  def get(%__MODULE__{ets: ets} = cache, key) do
     case :ets.lookup(ets, key) do
       [{^key, value}] ->
         read_touch(cache, key)
@@ -131,13 +133,13 @@ defmodule ConCache do
     end
   end
 
-  defp read_touch(con_cache(touch_on_read: false), _), do: :ok
-  defp read_touch(con_cache(touch_on_read: true) = cache, key) do
+  defp read_touch(%__MODULE__{touch_on_read: false}, _), do: :ok
+  defp read_touch(%__MODULE__{touch_on_read: true} = cache, key) do
     touch(cache, key)
   end
 
   @spec get_all(ConCache_t) :: [value]
-  def get_all(con_cache(ets: ets)) do
+  def get_all(%__MODULE__{ets: ets}) do
     :ets.tab2list(ets)
   end
 
@@ -192,39 +194,39 @@ defmodule ConCache do
     return_value
   end
 
-  defp do_update(cache, key, ConCacheItem[] = new_value) do
+  defp do_update(cache, key, %ConCache.Item{} = new_value) do
     dirty_put(cache, key, new_value)
   end
 
   defp do_update(cache, key, new_value) do
-    do_update(cache, key, ConCacheItem.new(value: new_value, ttl: :renew))
+    do_update(cache, key, %ConCache.Item{value: new_value, ttl: :renew})
   end
 
   @spec dirty_put(ConCache_t, key, in_value) :: :ok
-  def dirty_put(con_cache(ets: ets) = cache, key, ConCacheItem[ttl: ttl, value: value]) do
+  def dirty_put(%__MODULE__{ets: ets} = cache, key, %ConCache.Item{ttl: ttl, value: value}) do
     set_ttl(cache, key, ttl)
     :ets.insert(ets, {key, value})
     invoke_callback(cache, {:update, cache, key, value})
     :ok
   end
 
-  def dirty_put(con_cache(ttl: ttl) = cache, key, value) do
-    dirty_put(cache, key, ConCacheItem.new(value: value, ttl: ttl))
+  def dirty_put(%__MODULE__{ttl: ttl} = cache, key, value) do
+    dirty_put(cache, key, %ConCache.Item{value: value, ttl: ttl})
   end
 
-  defp set_ttl(con_cache(ttl_manager: nil), _, _), do: :ok
-  defp set_ttl(con_cache(ttl_manager: ttl_manager), key, ttl) do
+  defp set_ttl(%__MODULE__{ttl_manager: nil}, _, _), do: :ok
+  defp set_ttl(%__MODULE__{ttl_manager: ttl_manager}, key, ttl) do
     TtlManager.set_ttl(ttl_manager, key, ttl)
   end
 
-  defp clear_ttl(con_cache(ttl_manager: nil), _), do: :ok
-  defp clear_ttl(con_cache(ttl_manager: ttl_manager), key) do
+  defp clear_ttl(%__MODULE__{ttl_manager: nil}, _), do: :ok
+  defp clear_ttl(%__MODULE__{ttl_manager: ttl_manager}, key) do
     TtlManager.clear_ttl(ttl_manager, key)
   end
 
 
-  defp invoke_callback(con_cache(callback: nil), _), do: :ok
-  defp invoke_callback(con_cache(callback: fun), data) when is_function(fun) do
+  defp invoke_callback(%__MODULE__{callback: nil}, _), do: :ok
+  defp invoke_callback(%__MODULE__{callback: fun}, data) when is_function(fun) do
     fun.(data)
   end
 
@@ -254,7 +256,7 @@ defmodule ConCache do
     end
   end
 
-  defp value(ConCacheItem[value: value]), do: value
+  defp value(%ConCache.Item{value: value}), do: value
   defp value(value), do: value
 
   @spec delete(ConCache_t, key) :: :ok
@@ -268,7 +270,7 @@ defmodule ConCache do
     do_delete(cache, key)
   end
 
-  defp do_delete(con_cache(ets: ets) = cache, key) do
+  defp do_delete(%__MODULE__{ets: ets} = cache, key) do
     try do
       invoke_callback(cache, {:delete, cache, key})
     after
@@ -292,12 +294,12 @@ defmodule ConCache do
   end
 
   @spec size(ConCache_t) :: integer
-  def size(con_cache(ets: ets)) do
+  def size(%__MODULE__{ets: ets}) do
     :ets.info(ets, :size)
   end
 
   @spec memory(ConCache_t) :: integer
-  def memory(con_cache(ets: ets)) do
+  def memory(%__MODULE__{ets: ets}) do
     :ets.info(ets, :memory)
   end
 

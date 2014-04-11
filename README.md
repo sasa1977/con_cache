@@ -100,10 +100,10 @@ ConCache.touch(cache, key)
 And you can override ttl for each item:
 
 ```elixir
-ConCache.put(cache, key, ConCacheItem.new(value: value, ttl: ttl))
+ConCache.put(cache, key, %ConCache.Item{value: value, ttl: ttl})
 
 ConCache.update(cache, key, fn(old_value) ->
-  ConCacheItem.new(value: new_value, ttl: ttl)
+  %ConCache.Item{value: new_value, ttl: ttl}
 end)
 ```
 
