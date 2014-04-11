@@ -84,28 +84,28 @@ defmodule ConCacheTest do
       assert (ConCache.get_all(cache) |> Enum.sort) == [a: 1, b: 2]
     end)
   end
-  
+
   test "dirty" do
     with_cache(fn(cache) ->
       assert ConCache.dirty_put(cache, :a, 1) == :ok
       assert ConCache.get(cache, :a) == 1
-      
+
       assert ConCache.dirty_insert_new(cache, :b, 2) == :ok
       assert ConCache.get(cache, :b) == 2
       assert ConCache.dirty_insert_new(cache, :b, 3) == {:error, :already_exists}
       assert ConCache.get(cache, :b) == 2
       assert ConCache.dirty_delete(cache, :b) == :ok
       assert ConCache.get(cache, :b) == nil
-          
+
       assert ConCache.dirty_update(cache, :a, &(&1 + 1)) == :ok
       assert ConCache.get(cache, :a) == 2
 
       assert ConCache.dirty_update_existing(cache, :a, &(&1 + 1)) == :ok
       assert ConCache.get(cache, :a) == 3
-      
+
       assert ConCache.dirty_update_existing(cache, :b, &(&1 + 1)) == {:error, :not_existing}
       assert ConCache.get(cache, :b) == nil
-          
+
       assert ConCache.dirty_get_or_store(cache, :a, fn() -> :dummy end) == 3
       assert ConCache.dirty_get_or_store(cache, :b, fn() -> 4 end) == 4
       assert ConCache.get(cache, :b) == 4
@@ -114,7 +114,7 @@ defmodule ConCacheTest do
 
   test "ets_options" do
     with_cache(
-      [ets_options: [:named_table, {:name, :test_name}]], 
+      [ets_options: [:named_table, {:name, :test_name}]],
       fn(cache) ->
         assert :ets.info(cache.ets, :named_table) == true
         assert :ets.info(cache.ets, :name) == :test_name
@@ -124,7 +124,7 @@ defmodule ConCacheTest do
 
   test "from_ets" do
     with_cache(
-      [ets: :ets.new(:custom_ets, [:public])], 
+      [ets: :ets.new(:custom_ets, [:public])],
       fn(cache) ->
         assert ConCache.get(cache, :a) == nil
         assert ConCache.put(cache, :a, 1) == :ok
@@ -139,7 +139,7 @@ defmodule ConCacheTest do
 
   test "callback" do
     with_cache(
-      [callback: &send(self, &1)], 
+      [callback: &send(self, &1)],
       fn(cache) ->
         ConCache.put(cache, :a, 1)
         assert_receive {:update, ^cache, :a, 1}
@@ -159,27 +159,27 @@ defmodule ConCacheTest do
   test "ttl" do
     Enum.each([1, 2, 4, 8], fn(time_size) ->
       with_cache(
-        [ttl_check: 10, ttl: 50, time_size: time_size], 
+        [ttl_check: 10, ttl: 50, time_size: time_size],
         fn(cache) ->
           ConCache.put(cache, :a, 1)
           :timer.sleep(40)
           assert ConCache.get(cache, :a) == 1
           :timer.sleep(40)
           assert ConCache.get(cache, :a) == nil
-          
+
           test_renew_ttl(cache, fn() -> ConCache.put(cache, :a, 1) end)
           test_renew_ttl(cache, fn() -> ConCache.update(cache, :a, &(&1 + 1)) end)
           test_renew_ttl(cache, fn() -> ConCache.update_existing(cache, :a, &(&1 + 1)) end)
           test_renew_ttl(cache, fn() -> ConCache.touch(cache, :a) end)
-          
+
           ConCache.put(cache, :a, ConCacheItem.new(value: 1, ttl: 20))
           :timer.sleep(40)
           assert ConCache.get(cache, :a) == nil
-          
+
           ConCache.put(cache, :a, ConCacheItem.new(value: 1, ttl: 0))
           :timer.sleep(100)
           assert ConCache.get(cache, :a) == 1
-          
+
           ConCache.put(cache, :a, 2)
           ConCache.delete(cache, :a)
           :timer.sleep(60)
@@ -202,7 +202,7 @@ defmodule ConCacheTest do
 
   test "touch_on_read" do
     with_cache(
-      [ttl_check: 10, ttl: 50, touch_on_read: true], 
+      [ttl_check: 10, ttl: 50, touch_on_read: true],
       fn(cache) ->
         ConCache.put(cache, :a, 1)
         :timer.sleep(40)
@@ -214,7 +214,7 @@ defmodule ConCacheTest do
       end
     )
   end
-  
+
   test "try_isolated" do
     with_cache(fn(cache) ->
       spawn(fn() ->

@@ -13,7 +13,7 @@ defmodule ConCache do
   @type job :: (() -> result)
   @type updater :: ((value) -> {:cancel_update, result} | in_value)
 
-  
+
   @spec start_link :: ConCache_t
   @spec start_link(options) :: ConCache_t
   def start_link(options \\ []) do
@@ -27,7 +27,7 @@ defmodule ConCache do
       acquire_lock_timeout: options[:acquire_lock_timeout] || 5000,
       callback: options[:callback],
       touch_on_read: options[:touch_on_read] || false
-    ) 
+    )
     |> create_ttl_manager(options)
   end
 
@@ -54,12 +54,12 @@ defmodule ConCache do
   defp append_option(ets_options(options: options) = ets_options, option) do
     ets_options(ets_options, options: [option | options])
   end
-  
+
   defp create_ets(input_options) do
     ets_options(name: name, type: type, options: options) = parse_ets_options(input_options)
     :ets.new(name, [type | options])
   end
-  
+
   defp parse_ets_options(input_options) do
     Enum.reduce(
       input_options,
@@ -77,10 +77,10 @@ defmodule ConCache do
         end
     )
   end
-  
+
   defp create_ttl_manager(cache, options) do
     case options[:ttl_check] do
-      ttl_check when is_integer(ttl_check) and ttl_check > 0 -> 
+      ttl_check when is_integer(ttl_check) and ttl_check > 0 ->
         {:ok, ttl_manager} = TtlManager.start_link(
           ttl_check: ttl_check,
           time_size: options[:time_size],
@@ -93,7 +93,7 @@ defmodule ConCache do
       nil -> cache
     end
   end
-  
+
 
   @spec isolated(ConCache_t, key, job) :: result
   def isolated(con_cache(acquire_lock_timeout: acquire_lock_timeout) = cache, key, fun) do
@@ -104,14 +104,14 @@ defmodule ConCache do
   def isolated(con_cache(lock: lock), key, acquire_lock_timeout, fun) do
     BalancedLock.exec(lock, key, acquire_lock_timeout, fun)
   end
-  
+
   @spec try_isolated(ConCache_t, key, job) :: {:error, :locked} | result
-  def try_isolated(con_cache(acquire_lock_timeout: acquire_lock_timeout) = cache, 
+  def try_isolated(con_cache(acquire_lock_timeout: acquire_lock_timeout) = cache,
     key, on_success
   ) do
     try_isolated(cache, key, acquire_lock_timeout, on_success)
   end
-  
+
   @spec try_isolated(ConCache_t, key, timeout, job) :: {:error, :locked} | result
   def try_isolated(con_cache(lock: lock), key, acquire_lock_timeout, on_success) do
     case BalancedLock.try_exec(lock, key, acquire_lock_timeout, on_success) do
@@ -120,11 +120,11 @@ defmodule ConCache do
     end
   end
 
-  
+
   @spec get(ConCache_t, key) :: value
   def get(con_cache(ets: ets) = cache, key) do
     case :ets.lookup(ets, key) do
-      [{^key, value}] -> 
+      [{^key, value}] ->
         read_touch(cache, key)
         value
       _ -> nil
@@ -135,7 +135,7 @@ defmodule ConCache do
   defp read_touch(con_cache(touch_on_read: true) = cache, key) do
     touch(cache, key)
   end
-  
+
   @spec get_all(ConCache_t) :: [value]
   def get_all(con_cache(ets: ets)) do
     :ets.tab2list(ets)
@@ -147,18 +147,18 @@ defmodule ConCache do
       dirty_put(cache, key, value)
     end)
   end
-  
-  
+
+
   @spec insert_new(ConCache_t, key, in_value) :: :ok | {:error, :already_exists}
   def insert_new(cache, key, value) do
     update(cache, key, &do_insert_new(value, &1))
   end
-  
+
   @spec dirty_insert_new(ConCache_t, key, in_value) :: :ok | {:error, :already_exists}
   def dirty_insert_new(cache, key, value) do
     dirty_update(cache, key, &do_insert_new(value, &1))
   end
-  
+
   defp do_insert_new(value, nil), do: value
   defp do_insert_new(_, _), do: {:cancel_update, {:error, :already_exists}}
 
@@ -168,19 +168,19 @@ defmodule ConCache do
       do_update(cache, key, fun.(get(cache, key)))
     end)
   end
-  
+
   @spec dirty_update(ConCache_t, key, updater) :: :ok
   def dirty_update(cache, key, fun) do
     do_update(cache, key, fun.(get(cache, key)))
   end
-  
+
   @spec update_existing(ConCache_t, key, updater) :: :ok | {:error, :not_existing}
   def update_existing(cache, key, fun) do
     isolated(cache, key, fn() ->
       dirty_update_existing(cache, key, fun)
     end)
   end
-  
+
   @spec dirty_update_existing(ConCache_t, key, updater) :: :ok | {:error, :not_existing}
   def dirty_update_existing(cache, key, fun) do
     with_existing(cache, key, fn(existing) ->
@@ -195,11 +195,11 @@ defmodule ConCache do
   defp do_update(cache, key, ConCacheItem[] = new_value) do
     dirty_put(cache, key, new_value)
   end
-  
+
   defp do_update(cache, key, new_value) do
     do_update(cache, key, ConCacheItem.new(value: new_value, ttl: :renew))
   end
-  
+
   @spec dirty_put(ConCache_t, key, in_value) :: :ok
   def dirty_put(con_cache(ets: ets) = cache, key, ConCacheItem[ttl: ttl, value: value]) do
     set_ttl(cache, key, ttl)
@@ -211,17 +211,17 @@ defmodule ConCache do
   def dirty_put(con_cache(ttl: ttl) = cache, key, value) do
     dirty_put(cache, key, ConCacheItem.new(value: value, ttl: ttl))
   end
-  
+
   defp set_ttl(con_cache(ttl_manager: nil), _, _), do: :ok
   defp set_ttl(con_cache(ttl_manager: ttl_manager), key, ttl) do
     TtlManager.set_ttl(ttl_manager, key, ttl)
   end
-  
+
   defp clear_ttl(con_cache(ttl_manager: nil), _), do: :ok
   defp clear_ttl(con_cache(ttl_manager: ttl_manager), key) do
     TtlManager.clear_ttl(ttl_manager, key)
   end
-  
+
 
   defp invoke_callback(con_cache(callback: nil), _), do: :ok
   defp invoke_callback(con_cache(callback: fun), data) when is_function(fun) do
@@ -241,13 +241,13 @@ defmodule ConCache do
       dirty_get_or_store(cache, key, fun)
     end)
   end
-  
+
   @spec dirty_get_or_store(ConCache_t, key, (() -> in_value)) :: value
   def dirty_get_or_store(cache, key, fun) do
     case get(cache, key) do
       nil ->
         new_value = fun.()
-        dirty_put(cache, key, new_value) 
+        dirty_put(cache, key, new_value)
         value(new_value)
 
       existing -> existing
@@ -261,20 +261,20 @@ defmodule ConCache do
   def delete(cache, key) do
     isolated(cache, key, fn() -> dirty_delete(cache, key) end)
   end
-  
+
   @spec dirty_delete(ConCache_t, key) :: :ok
   def dirty_delete(cache, key) do
     clear_ttl(cache, key)
     do_delete(cache, key)
   end
-  
+
   defp do_delete(con_cache(ets: ets) = cache, key) do
     try do
       invoke_callback(cache, {:delete, cache, key})
     after
       :ets.delete(ets, key)
     end
-    
+
     :ok
   end
 
@@ -285,7 +285,7 @@ defmodule ConCache do
       existing -> fun.(existing)
     end
   end
-  
+
   @spec touch(ConCache_t, key) :: :ok
   def touch(cache, key) do
     set_ttl(cache, key, :renew)

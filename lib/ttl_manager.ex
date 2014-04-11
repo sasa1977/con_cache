@@ -2,20 +2,20 @@ defmodule TtlManager do
   @type options :: Keyword.t
   @type key :: any
   @type ttl :: non_neg_integer | :renew
-  
+
   use ExActor.Tolerant
   use Bitwise
   
   defrecordp :ttl_state, [
-    ttl_check: nil, 
+    ttl_check: nil,
     current_time: 1,
-    pending: nil, 
+    pending: nil,
     ttls: nil,
     max_time: nil,
     on_expire: nil,
     pending_ttl_sets: HashDict.new
   ]
-  
+
   @spec start(options) :: {:ok, pid}
   @spec start_link(options) :: {:ok, pid}
 
@@ -34,49 +34,49 @@ defmodule TtlManager do
   defcast stop, state: state do
     {:stop, :normal, state}
   end
-  
+
   @spec clear_ttl(pid | atom, key) :: :ok
   def clear_ttl(server, key) do
     set_ttl(server, key, 0)
   end
-  
+
   @spec set_ttl(pid | atom, key, ttl) :: :ok
   defcast set_ttl(key, ttl), state: ttl_state(pending_ttl_sets: pending_ttl_sets) = state do
     state
     |> ttl_state(pending_ttl_sets: Dict.update(pending_ttl_sets, key, ttl, &queue_ttl_set(&1, ttl)))
     |> new_state
   end
-  
+
   defp queue_ttl_set(existing, :renew), do: existing
   defp queue_ttl_set(_, new_ttl), do: new_ttl
-  
+
   defp apply_pending_ttls(ttl_state(pending_ttl_sets: pending_ttl_sets) = state) do
     Enum.each(pending_ttl_sets, fn({key, ttl}) ->
       do_set_ttl(state, key, ttl)
     end)
-    
+
     ttl_state(state, pending_ttl_sets: HashDict.new)
   end
-  
+
   defp do_set_ttl(state, key, :renew) do
     case item_ttl(state, key) do
       nil -> state
       ttl -> do_set_ttl(state, key, ttl)
     end
   end
-  
+
   defp do_set_ttl(state, key, ttl) do
     remove_pending(state, key)
     store_ttl(state, key, ttl)
   end
-  
+
   defp item_ttl(ttl_state(ttls: ttls), key) do
     case :ets.lookup(ttls, key) do
       [{^key, {_, ttl}}] -> ttl
       _ -> nil
     end
   end
-  
+
   defp item_expiry_time(ttl_state(ttls: ttls), key) do
     case :ets.lookup(ttls, key) do
       [{^key, {item_expiry_time, _}}] -> item_expiry_time
@@ -109,36 +109,36 @@ defmodule TtlManager do
     else
       isteps
     end
-    
+
     current_time + 1 + isteps
   end
-  
+
   defp queue_check(ttl_state(ttl_check: ttl_check) = state) do
     :erlang.send_after(ttl_check, self, :check_purge)
     state
   end
 
   definfo :check_purge, state: state do
-    state 
-    |> apply_pending_ttls 
-    |> increase_time 
-    |> purge 
-    |> queue_check 
+    state
+    |> apply_pending_ttls
+    |> increase_time
+    |> purge
+    |> queue_check
     |> new_state
   end
-  
+
   definfo _, do: noreply
-  
+
   defp increase_time(ttl_state(current_time: max, max_time: max) = state) do
     normalize_pending(state)
     normalize_ttls(state)
     ttl_state(state, current_time: 0)
   end
-  
+
   defp increase_time(ttl_state(current_time: current_time) = state) do
     ttl_state(state, current_time: current_time + 1)
   end
-  
+
   defp normalize_pending(ttl_state(current_time: current_time, pending: pending)) do
     all_pending = :ets.tab2list(pending)
     :ets.delete_all_objects(pending)
@@ -146,7 +146,7 @@ defmodule TtlManager do
       :ets.insert(pending, {time - current_time - 1, value})
     end)
   end
-  
+
   defp normalize_ttls(ttl_state(current_time: current_time, ttls: ttls)) do
     all_ttls = :ets.tab2list(ttls)
     :ets.delete_all_objects(ttls)
@@ -163,7 +163,7 @@ defmodule TtlManager do
     :ets.delete(pending, current_time)
     state
   end
-  
+
   defp currently_pending(ttl_state(pending: pending, current_time: current_time)) do
     :ets.lookup(pending, current_time) 
     |> Enum.map(&elem(&1, 1))

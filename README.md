@@ -17,22 +17,22 @@ ConCache.get(cache, key)
 ConCache.delete(cache, key)
 
 ConCache.update(cache, key, fn(old_value) ->
-  # This function is isolated on a row level. Modifications such as update, put, delete, 
-  # on this key will wait for this function to finish. 
+  # This function is isolated on a row level. Modifications such as update, put, delete,
+  # on this key will wait for this function to finish.
   # Modifications on other items are not affected.
   # Reads are always dirty.
 
   new_value
 end)
 
-# Similar to update, but executes provided function only if item exists. 
+# Similar to update, but executes provided function only if item exists.
 # Otherwise returns {:error, :not_existing}
 ConCache.update_existing(cache, key, fn(old_value) ->
   new_value
 end)
 
 
-# Returns existing value, or calls function and stores the result. 
+# Returns existing value, or calls function and stores the result.
 # If many processes simultaneously invoke this function for the same key, the function will be
 # executed only once, with all others reading the value from cache.
 ConCache.get_or_store(cache, key, fn() ->
@@ -63,7 +63,7 @@ You can register your own function which will be invoked after an element is sto
 
 ```elixir
 cache = ConCache.start_link(callback: fn(data) -> ... end)
-    
+
 ConCache.put(cache, key, value)         # fun will be called with {:update, cache, key, value}
 ConCache.delete(cache, key)             # fun will be called with {:delete, cache, key}
 ```
@@ -74,7 +74,7 @@ The delete callback is invoked before the item is deleted, so you still have the
 
 ```elixir
 cache = ConCache.start_link(
-  ttl_check: :timer.seconds(1), 
+  ttl_check: :timer.seconds(1),
   ttl: :timer.seconds(5)
 )
 ```
@@ -85,7 +85,7 @@ The item lifetime is renewed on every modification. Reads don't extend ttl, but 
 
 ```elixir
 cache = ConCache.start_link(
-  ttl_check: :timer.seconds(1), 
+  ttl_check: :timer.seconds(1),
   ttl: :timer.seconds(5),
   touch_on_read: true
 )
@@ -119,7 +119,7 @@ The ets table is always public, and by default it is of _set_ type. Some ets par
 
 ```elixir
 ConCache.start_link(ets_options: [
-  :named_table, 
+  :named_table,
   {:name, :test_name},
   :ordered_set,
   {:read_concurrency, true},
@@ -175,7 +175,7 @@ The isolation operations can be arbitrarily nested, although I wouldn't recommen
 
 ### TTL
 
-When ttl is configured, ttl\_manager process is spawn linked. It works in discrete steps using :erlang.send\_after to trigger the next step. 
+When ttl is configured, ttl\_manager process is spawn linked. It works in discrete steps using :erlang.send\_after to trigger the next step.
 
 When an item ttl is set, ttl\_manager receives a message and stores it in its pending hash structure without doing anything else. Therefore, repeated touching of items is not very expensive.
 
