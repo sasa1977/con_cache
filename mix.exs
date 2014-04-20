@@ -4,7 +4,7 @@ defmodule Lock.Mixfile do
   def project do
     [ app: :con_cache,
       version: "0.0.1",
-      elixir: ">= 0.13.0-dev",
+      elixir: ">= 0.13.0",
       deps: deps ]
   end
 
