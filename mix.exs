@@ -14,10 +14,7 @@ defmodule Lock.Mixfile do
         licenses: ["MIT"],
         links: [{"Github", "https://github.com/sasa1977/con_cache"}]
       ],
-      description: """
-        ETS based key-value storage with support for row-level isolated writes, TTL auto-purge,
-        and modification callbacks.
-      """
+      description: "ETS based key-value storage with support for row-level isolated writes, TTL auto-purge, and modification callbacks."
     ]
   end
 
