@@ -1,1 +1,1 @@
-%{"exactor": {:git, "git://github.com/sasa1977/exactor.git", "c3a7341a01f4a5428322805d2c59c692f2f13486", []}}
+%{"exactor": {:package, "0.3.0"}}

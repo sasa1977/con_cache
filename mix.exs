@@ -1,3 +1,5 @@
+Code.ensure_loaded?(Hex) and Hex.start
+
 defmodule Lock.Mixfile do
   use Mix.Project
 
@@ -24,6 +26,6 @@ defmodule Lock.Mixfile do
   end
 
   defp deps do
-    [{:exactor, "0.2.1", github: "sasa1977/exactor"}]
+    [{:exactor, "0.3.0"}]
   end
 end
