@@ -26,6 +26,6 @@ defmodule Lock.Mixfile do
   end
 
   defp deps do
-    [{:exactor, "0.3.0"}]
+    [{:exactor, "0.3.1"}]
   end
 end
