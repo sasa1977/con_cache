@@ -7,7 +7,7 @@ defmodule Lock.Mixfile do
     [
       app: :con_cache,
       version: "0.0.2",
-      elixir: ">= 0.13.0",
+      elixir: "~> 0.13.1",
       deps: deps,
       package: [
         contributors: ["Saša Jurić"],
