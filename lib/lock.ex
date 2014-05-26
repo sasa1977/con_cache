@@ -1,9 +1,11 @@
 defmodule Lock do
+  require Record
+
   @type key :: any
   @type result :: any
   @type job :: (() -> result)
 
-  defrecordp :item, pending: :gb_trees.empty, locked: nil
+  Record.defrecordp :item, pending: :gb_trees.empty, locked: nil
   defstruct items: HashDict.new
 
   use ExActor.Tolerant, initial_state: %__MODULE__{}

@@ -3,6 +3,8 @@ defmodule ConCache.Item do
 end
 
 defmodule ConCache do
+  require Record
+
   defstruct [
     :ets, :lock, :ttl_manager, :ttl, :acquire_lock_timeout, :callback, :touch_on_read
   ]
@@ -51,7 +53,7 @@ defmodule ConCache do
     if (not (:ets.info(ets, :type) in [:set, :ordered_set])), do: throw({:error, :invalid_type})
   end
 
-  defrecordp :ets_options, name: :con_cache, type: :set, options: [:public]
+  Record.defrecordp :ets_options, name: :con_cache, type: :set, options: [:public]
 
   defp append_option(ets_options(options: options) = ets_options, option) do
     ets_options(ets_options, options: [option | options])
