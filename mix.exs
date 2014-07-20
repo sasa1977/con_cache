@@ -6,8 +6,8 @@ defmodule Lock.Mixfile do
   def project do
     [
       app: :con_cache,
-      version: "0.1.0",
-      elixir: "~> 0.13.3",
+      version: "0.2.0",
+      elixir: "~> 0.14.3",
       deps: deps,
       package: [
         contributors: ["Saša Jurić"],
@@ -23,6 +23,6 @@ defmodule Lock.Mixfile do
   end
 
   defp deps do
-    [{:exactor, "~> 0.4.0"}]
+    [{:exactor, "~> 0.5.0"}]
   end
 end

@@ -8,12 +8,12 @@ defmodule KeyBalancer do
   @spec new(pos_integer, (() -> element)) :: t
   def new(size, initializer) when size >= 1 do
     [__MODULE__ | [size | Enum.map(1..size, fn(_) -> initializer.() end)]] 
-    |> list_to_tuple
+    |> :erlang.list_to_tuple
   end
 
   def each(balancer, fun) do
     balancer
-    |> tuple_to_list
+    |> :erlang.tuple_to_list
     |> Enum.drop(2)
     |> Enum.each(&fun.(&1))
   end
