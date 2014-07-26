@@ -4,16 +4,16 @@ defmodule KeyBalancer do
   @type element :: any
   @type result :: any
   @type job :: ((element) -> result)
-  
+
   @spec new(pos_integer, (() -> element)) :: t
   def new(size, initializer) when size >= 1 do
-    [__MODULE__ | [size | Enum.map(1..size, fn(_) -> initializer.() end)]] 
-    |> list_to_tuple
+    [__MODULE__ | [size | Enum.map(1..size, fn(_) -> initializer.() end)]]
+    |> List.to_tuple
   end
 
   def each(balancer, fun) do
     balancer
-    |> tuple_to_list
+    |> Tuple.to_list
     |> Enum.drop(2)
     |> Enum.each(&fun.(&1))
   end
