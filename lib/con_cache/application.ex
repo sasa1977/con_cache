@@ -3,9 +3,12 @@ defmodule ConCache.Application do
   import Supervisor.Spec
 
   def start(_, _) do
-    ConCache.Registry.create
     Supervisor.start_link(
-      [supervisor(ConCache.BalancedLock, [])], strategy: :one_for_one
+      [
+        worker(ConCache.Registry, []),
+        supervisor(ConCache.BalancedLock, [])
+      ],
+      strategy: :one_for_one
     )
   end
 end
