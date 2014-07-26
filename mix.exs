@@ -6,7 +6,7 @@ defmodule Lock.Mixfile do
   def project do
     [
       app: :con_cache,
-      version: "0.2.0",
+      version: "0.3.0-dev",
       elixir: "~> 0.14.3",
       deps: deps,
       package: [
