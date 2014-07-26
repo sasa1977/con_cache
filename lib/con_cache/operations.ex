@@ -6,7 +6,7 @@ defmodule ConCache.Operations do
   end
 
   def isolated(_, key, acquire_lock_timeout, fun) do
-    BalancedLock.exec(key, acquire_lock_timeout, fun)
+    ConCache.BalancedLock.exec(key, acquire_lock_timeout, fun)
   end
 
   def try_isolated(%ConCache{acquire_lock_timeout: acquire_lock_timeout} = cache, key, on_success) do
@@ -14,7 +14,7 @@ defmodule ConCache.Operations do
   end
 
   def try_isolated(_, key, acquire_lock_timeout, on_success) do
-    case BalancedLock.try_exec(key, acquire_lock_timeout, on_success) do
+    case ConCache.BalancedLock.try_exec(key, acquire_lock_timeout, on_success) do
       {:lock, :not_acquired} -> {:error, :locked}
       response -> response
     end
@@ -103,12 +103,12 @@ defmodule ConCache.Operations do
 
   defp set_ttl(%ConCache{ttl_manager: nil}, _, _), do: :ok
   defp set_ttl(%ConCache{ttl_manager: ttl_manager}, key, ttl) do
-    TtlManager.set_ttl(ttl_manager, key, ttl)
+    ConCache.TtlManager.set_ttl(ttl_manager, key, ttl)
   end
 
   defp clear_ttl(%ConCache{ttl_manager: nil}, _), do: :ok
   defp clear_ttl(%ConCache{ttl_manager: ttl_manager}, key) do
-    TtlManager.clear_ttl(ttl_manager, key)
+    ConCache.TtlManager.clear_ttl(ttl_manager, key)
   end
 
 

@@ -1,4 +1,4 @@
-defmodule Lock do
+defmodule ConCache.Lock do
   require Record
 
   @type key :: any

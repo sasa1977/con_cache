@@ -1,4 +1,4 @@
-defmodule BalancedLock do
+defmodule ConCache.BalancedLock do
   import Supervisor.Spec
 
   def start_link do
@@ -10,16 +10,16 @@ defmodule BalancedLock do
   end
 
   def exec(id, timeout \\ 5000, fun) do
-    Lock.exec(lock_pid(id), id, timeout, fun)
+    ConCache.Lock.exec(lock_pid(id), id, timeout, fun)
   end
 
   def try_exec(id, timeout \\ 5000, fun) do
-    Lock.try_exec(lock_pid(id), id, timeout, fun)
+    ConCache.Lock.try_exec(lock_pid(id), id, timeout, fun)
   end
 
 
   defp lock_worker_spec(index) do
-    worker(Lock, [nil, [name: worker_alias(index)]], id: worker_alias(index))
+    worker(ConCache.Lock, [nil, [name: worker_alias(index)]], id: worker_alias(index))
   end
 
   defp worker_alias(index), do: :"con_cache_lock_worker_#{index}"

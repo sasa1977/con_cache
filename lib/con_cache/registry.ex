@@ -1,4 +1,4 @@
-defmodule CacheRegistry do
+defmodule ConCache.Registry do
   def create do
     :ets.new(:con_cache_registry, [:set, :named_table, {:read_concurrency, true}, :public])
   end

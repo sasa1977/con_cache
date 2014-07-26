@@ -1,4 +1,4 @@
-defmodule TtlManager do
+defmodule ConCache.TtlManager do
   @type options :: Keyword.t
   @type key :: any
   @type ttl :: non_neg_integer | :renew

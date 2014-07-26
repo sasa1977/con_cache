@@ -4,7 +4,7 @@ defmodule ConCache.Owner do
   require Record
   Record.defrecordp :ets_options, name: :con_cache, type: :set, options: [:public]
 
-  def cache(pid) when is_pid(pid), do: CacheRegistry.get(pid)
+  def cache(pid) when is_pid(pid), do: ConCache.Registry.get(pid)
 
   definit options do
     ets = create_ets(options[:ets_options] || [])
@@ -21,7 +21,7 @@ defmodule ConCache.Owner do
       }
       |> create_ttl_manager(options)
 
-    CacheRegistry.register(cache)
+    ConCache.Registry.register(cache)
     initial_state(cache)
   end
 
@@ -62,7 +62,7 @@ defmodule ConCache.Owner do
     me = self
     case options[:ttl_check] do
       ttl_check when is_integer(ttl_check) and ttl_check > 0 ->
-        {:ok, ttl_manager} = TtlManager.start_link(
+        {:ok, ttl_manager} = ConCache.TtlManager.start_link(
           ttl_check: ttl_check,
           time_size: options[:time_size],
           on_expire: &ConCache.delete(me, &1)

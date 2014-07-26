@@ -2,8 +2,8 @@ defmodule ConCacheTest do
   use ExUnit.Case, async: false
 
   defp with_cache(opts \\ [], fun) do
-    BalancedLock.start_link
-    CacheRegistry.create
+    ConCache.BalancedLock.start_link
+    ConCache.Registry.create
     {:ok, cache} = ConCache.start_link(opts)
     fun.(cache)
   end
