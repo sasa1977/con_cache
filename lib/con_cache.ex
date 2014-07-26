@@ -7,12 +7,12 @@ defmodule ConCache do
     :owner_pid, :ets, :ttl_manager, :ttl, :acquire_lock_timeout, :callback, :touch_on_read
   ]
 
-  def start_link(options \\ []) do
-    ConCache.Owner.start_link(options)
+  def start_link(options \\ [], gen_server_options \\ []) do
+    ConCache.Owner.start_link(options, gen_server_options)
   end
 
-  def start(options \\ []) do
-    ConCache.Owner.start(options)
+  def start(options \\ [], gen_server_options \\ []) do
+    ConCache.Owner.start(options, gen_server_options)
   end
 
   operations = [

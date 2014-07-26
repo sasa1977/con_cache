@@ -4,6 +4,10 @@ defmodule ConCache.Owner do
   require Record
   Record.defrecordp :ets_options, name: :con_cache, type: :set, options: [:public]
 
+  def cache({:local, local}) when is_atom(local), do: cache(local)
+  def cache(local) when is_atom(local), do: ConCache.Registry.get(Process.whereis(local))
+  def cache({:global, name}), do: cache({:via, :global, name})
+  def cache({:via, module, name}), do: cache(module.whereis_name(name))
   def cache(pid) when is_pid(pid), do: ConCache.Registry.get(pid)
 
   definit options do

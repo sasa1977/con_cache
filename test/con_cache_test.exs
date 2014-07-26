@@ -240,4 +240,15 @@ defmodule ConCacheTest do
     assert ConCache.get(cache2, :a) == nil
     assert ConCache.get(cache2, :b) == 2
   end
+
+  for name <- [:cache, {:local, :cache}, {:global, :cache}, {:via, :global, :cache}] do
+    test "registration #{inspect name}" do
+      ConCache.BalancedLock.start_link
+      ConCache.Registry.create
+      name = unquote(Macro.escape(name))
+      ConCache.start_link([], name: name)
+      ConCache.put(name, :a, 1)
+      assert ConCache.get(name, :a) == 1
+    end
+  end
 end
