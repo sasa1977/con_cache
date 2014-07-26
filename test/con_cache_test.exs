@@ -14,7 +14,7 @@ defmodule ConCacheTest do
 
   defp with_cache(opts \\ [], fun) do
     with_app(fn ->
-      {:ok, cache} = ConCache.start_link(opts)
+      {:ok, cache} = ConCache.start(opts)
       fun.(cache)
     end)
   end
@@ -241,8 +241,8 @@ defmodule ConCacheTest do
 
   test "multiple" do
     with_app(fn ->
-      {:ok, cache1} = ConCache.start_link
-      {:ok, cache2} = ConCache.start_link
+      {:ok, cache1} = ConCache.start
+      {:ok, cache2} = ConCache.start
       ConCache.put(cache1, :a, 1)
       ConCache.put(cache2, :b, 2)
       assert ConCache.get(cache1, :a) == 1
@@ -256,7 +256,7 @@ defmodule ConCacheTest do
     test "registration #{inspect name}" do
       with_app(fn ->
         name = unquote(Macro.escape(name))
-        ConCache.start_link([], name: name)
+        ConCache.start([], name: name)
         ConCache.put(name, :a, 1)
         assert ConCache.get(name, :a) == 1
       end)

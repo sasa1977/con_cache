@@ -9,7 +9,8 @@ defmodule ConCache.Owner do
     ttls: nil,
     max_time: nil,
     on_expire: nil,
-    pending_ttl_sets: HashDict.new
+    pending_ttl_sets: HashDict.new,
+    monitor_ref: nil
   ]
 
   require Record
@@ -35,10 +36,11 @@ defmodule ConCache.Owner do
     }
 
     state = start_ttl_loop(options)
-    if state != nil do
+    if state.ttl_check != nil do
       cache = %ConCache{cache | ttl_manager: self}
     end
 
+    state = %__MODULE__{state | monitor_ref: Process.monitor(Process.whereis(:con_cache_registry))}
     ConCache.Registry.register(cache)
 
     initial_state(state)
@@ -90,7 +92,7 @@ defmodule ConCache.Owner do
         }
         |> queue_check
 
-      _ -> nil
+      _ -> %__MODULE__{ttl_check: nil}
     end
   end
 
@@ -182,6 +184,10 @@ defmodule ConCache.Owner do
     |> purge
     |> queue_check
     |> new_state
+  end
+
+  definfo {:DOWN, ref1, _, _, reason}, state: %__MODULE__{monitor_ref: ref2} = state, when: ref1 == ref2 do
+    {:stop, reason, state}
   end
 
   definfo _, do: noreply
