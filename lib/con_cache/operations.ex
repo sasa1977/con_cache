@@ -103,12 +103,12 @@ defmodule ConCache.Operations do
 
   defp set_ttl(%ConCache{ttl_manager: nil}, _, _), do: :ok
   defp set_ttl(%ConCache{ttl_manager: ttl_manager}, key, ttl) do
-    ConCache.TtlManager.set_ttl(ttl_manager, key, ttl)
+    ConCache.Owner.set_ttl(ttl_manager, key, ttl)
   end
 
   defp clear_ttl(%ConCache{ttl_manager: nil}, _), do: :ok
   defp clear_ttl(%ConCache{ttl_manager: ttl_manager}, key) do
-    ConCache.TtlManager.clear_ttl(ttl_manager, key)
+    ConCache.Owner.clear_ttl(ttl_manager, key)
   end
 
 
