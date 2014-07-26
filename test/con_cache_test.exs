@@ -2,6 +2,7 @@ defmodule ConCacheTest do
   use ExUnit.Case, async: false
 
   defp with_cache(opts \\ [], fun) do
+    BalancedLock.start_link
     cache = ConCache.start_link(opts)
     fun.(cache)
     ConCache.stop(cache)
@@ -156,10 +157,10 @@ defmodule ConCacheTest do
     )
   end
 
-  test "ttl" do
-    Enum.each([1, 2, 4, 8], fn(time_size) ->
+  Enum.each([1, 2, 4, 8], fn(time_size) ->
+    test "ttl #{time_size}" do
       with_cache(
-        [ttl_check: 10, ttl: 50, time_size: time_size],
+        [ttl_check: 10, ttl: 50, time_size: unquote(time_size)],
         fn(cache) ->
           ConCache.put(cache, :a, 1)
           :timer.sleep(40)
@@ -186,8 +187,8 @@ defmodule ConCacheTest do
           assert ConCache.get(cache, :a) == nil
         end
       )
-    end)
-  end
+    end
+  end)
 
   defp test_renew_ttl(cache, fun) do
     ConCache.put(cache, :a, 1)

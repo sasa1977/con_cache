@@ -24,8 +24,6 @@ defmodule ConCache do
     ets = options[:ets] || create_ets(options[:ets_options] || [])
     check_ets(ets)
 
-    BalancedLock.start_link
-
     %__MODULE__{
       ets: ets,
       ttl: options[:ttl] || 0,
