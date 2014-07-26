@@ -3,9 +3,9 @@ defmodule ConCacheTest do
 
   defp with_cache(opts \\ [], fun) do
     BalancedLock.start_link
-    cache = ConCache.start_link(opts)
+    CacheRegistry.create
+    {:ok, cache} = ConCache.start_link(opts)
     fun.(cache)
-    ConCache.stop(cache)
   end
 
 
@@ -117,30 +117,16 @@ defmodule ConCacheTest do
     with_cache(
       [ets_options: [:named_table, {:name, :test_name}]],
       fn(cache) ->
-        assert :ets.info(cache.ets, :named_table) == true
-        assert :ets.info(cache.ets, :name) == :test_name
-      end
-    )
-  end
-
-  test "from_ets" do
-    with_cache(
-      [ets: :ets.new(:custom_ets, [:public])],
-      fn(cache) ->
-        assert ConCache.get(cache, :a) == nil
-        assert ConCache.put(cache, :a, 1) == :ok
-        assert ConCache.get(cache, :a) == 1
-
-        assert catch_throw ConCache.start_link(ets: :ets.new(:custom_ets, [:protected]))
-        assert catch_throw ConCache.start_link(ets: :ets.new(:custom_ets, [:private]))
-        assert catch_throw ConCache.start_link(ets: :ets.new(:custom_ets, [:bag]))
+        assert :ets.info(ConCache.ets(cache), :named_table) == true
+        assert :ets.info(ConCache.ets(cache), :name) == :test_name
       end
     )
   end
 
   test "callback" do
+    me = self
     with_cache(
-      [callback: &send(self, &1)],
+      [callback: &send(me, &1)],
       fn(cache) ->
         ConCache.put(cache, :a, 1)
         assert_receive {:update, ^cache, :a, 1}
@@ -240,5 +226,18 @@ defmodule ConCacheTest do
 
       assert ConCache.isolated(cache, :a, fn() -> 2 end) == 2
     end)
+  end
+
+  test "multiple" do
+    ConCache.BalancedLock.start_link
+    ConCache.Registry.create
+    {:ok, cache1} = ConCache.start_link
+    {:ok, cache2} = ConCache.start_link
+    ConCache.put(cache1, :a, 1)
+    ConCache.put(cache2, :b, 2)
+    assert ConCache.get(cache1, :a) == 1
+    assert ConCache.get(cache1, :b) == nil
+    assert ConCache.get(cache2, :a) == nil
+    assert ConCache.get(cache2, :b) == 2
   end
 end
