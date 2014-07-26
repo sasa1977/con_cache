@@ -1,34 +1,30 @@
 defmodule BalancedLock do
-  @type t :: KeyBalancer.t
-  @type key :: KeyBalancer.key
-  @type result :: any
-  @type job :: (() -> result)
-  
-  @spec start_link(pos_integer) :: t
-  def start_link(size) do
-    KeyBalancer.new(size, fn() -> 
-      {:ok, lock} = Lock.start_link
-      lock 
-    end)
+  import Supervisor.Spec
+
+  def start_link do
+    Supervisor.start_link(
+      Enum.map(1..size, &lock_worker_spec/1),
+      name: :con_cache_balanced_lock,
+      strategy: :one_for_one
+    )
   end
 
-  def stop(balancer) do
-    KeyBalancer.each(balancer, &Lock.stop/1)
+  def exec(id, timeout \\ 5000, fun) do
+    Lock.exec(lock_pid(id), id, timeout, fun)
   end
 
-  @spec exec(t, key, job) :: result
-  @spec exec(t, key, timeout, job) :: result
-  def exec(balancer, id, timeout \\ 5000, fun) do
-    KeyBalancer.exec(balancer, id, fn(server) ->
-      Lock.exec(server, id, timeout, fun)
-    end)
+  def try_exec(id, timeout \\ 5000, fun) do
+    Lock.try_exec(lock_pid(id), id, timeout, fun)
   end
 
-  @spec try_exec(t, key, job) :: result
-  @spec try_exec(t, key, timeout, job) :: result
-  def try_exec(balancer, id, timeout \\ 5000, fun) do
-    KeyBalancer.exec(balancer, id, fn(server) ->
-      Lock.try_exec(server, id, timeout, fun)
-    end)
+
+  defp lock_worker_spec(index) do
+    worker(Lock, [nil, [name: worker_alias(index)]], id: worker_alias(index))
   end
+
+  defp worker_alias(index), do: :"con_cache_lock_worker_#{index}"
+
+  defp lock_pid(id), do: Process.whereis(worker_alias(:erlang.phash2(id, size)))
+
+  defp size, do: :erlang.system_info(:schedulers)
 end

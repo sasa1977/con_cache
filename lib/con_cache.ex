@@ -6,7 +6,7 @@ defmodule ConCache do
   require Record
 
   defstruct [
-    :ets, :lock, :ttl_manager, :ttl, :acquire_lock_timeout, :callback, :touch_on_read
+    :ets, :ttl_manager, :ttl, :acquire_lock_timeout, :callback, :touch_on_read
   ]
 
   @type options :: Keyword.t
@@ -24,9 +24,10 @@ defmodule ConCache do
     ets = options[:ets] || create_ets(options[:ets_options] || [])
     check_ets(ets)
 
+    BalancedLock.start_link
+
     %__MODULE__{
       ets: ets,
-      lock: BalancedLock.start_link(options[:lock_balancers] || 10),
       ttl: options[:ttl] || 0,
       acquire_lock_timeout: options[:acquire_lock_timeout] || 5000,
       callback: options[:callback],
@@ -39,9 +40,8 @@ defmodule ConCache do
   def ets(%__MODULE__{ets: ets}), do: ets
 
   @spec stop(ConCache_t) :: :ok
-  def stop(%__MODULE__{ets: ets, lock: lock, ttl_manager: ttl_manager}) do
+  def stop(%__MODULE__{ets: ets, ttl_manager: ttl_manager}) do
     :ets.delete(ets)
-    BalancedLock.stop(lock)
     if ttl_manager, do: TtlManager.stop(ttl_manager)
 
     :ok
@@ -105,8 +105,8 @@ defmodule ConCache do
   end
 
   @spec isolated(ConCache_t, key, timeout, job) :: result
-  def isolated(%__MODULE__{lock: lock}, key, acquire_lock_timeout, fun) do
-    BalancedLock.exec(lock, key, acquire_lock_timeout, fun)
+  def isolated(%__MODULE__{}, key, acquire_lock_timeout, fun) do
+    BalancedLock.exec(key, acquire_lock_timeout, fun)
   end
 
   @spec try_isolated(ConCache_t, key, job) :: {:error, :locked} | result
@@ -117,8 +117,8 @@ defmodule ConCache do
   end
 
   @spec try_isolated(ConCache_t, key, timeout, job) :: {:error, :locked} | result
-  def try_isolated(%__MODULE__{lock: lock}, key, acquire_lock_timeout, on_success) do
-    case BalancedLock.try_exec(lock, key, acquire_lock_timeout, on_success) do
+  def try_isolated(%__MODULE__{}, key, acquire_lock_timeout, on_success) do
+    case BalancedLock.try_exec(key, acquire_lock_timeout, on_success) do
       {:lock, :not_acquired} -> {:error, :locked}
       response -> response
     end
