@@ -1,11 +1,22 @@
 defmodule ConCacheTest do
   use ExUnit.Case, async: false
 
+  defp with_app(fun) do
+    try do
+      Application.ensure_all_started(:con_cache)
+      fun.()
+    after
+      :error_logger.tty(false)
+      Application.stop(:con_cache)
+      :error_logger.tty(true)
+    end
+  end
+
   defp with_cache(opts \\ [], fun) do
-    ConCache.BalancedLock.start_link
-    ConCache.Registry.create
-    {:ok, cache} = ConCache.start_link(opts)
-    fun.(cache)
+    with_app(fn ->
+      {:ok, cache} = ConCache.start_link(opts)
+      fun.(cache)
+    end)
   end
 
 
@@ -229,26 +240,26 @@ defmodule ConCacheTest do
   end
 
   test "multiple" do
-    ConCache.BalancedLock.start_link
-    ConCache.Registry.create
-    {:ok, cache1} = ConCache.start_link
-    {:ok, cache2} = ConCache.start_link
-    ConCache.put(cache1, :a, 1)
-    ConCache.put(cache2, :b, 2)
-    assert ConCache.get(cache1, :a) == 1
-    assert ConCache.get(cache1, :b) == nil
-    assert ConCache.get(cache2, :a) == nil
-    assert ConCache.get(cache2, :b) == 2
+    with_app(fn ->
+      {:ok, cache1} = ConCache.start_link
+      {:ok, cache2} = ConCache.start_link
+      ConCache.put(cache1, :a, 1)
+      ConCache.put(cache2, :b, 2)
+      assert ConCache.get(cache1, :a) == 1
+      assert ConCache.get(cache1, :b) == nil
+      assert ConCache.get(cache2, :a) == nil
+      assert ConCache.get(cache2, :b) == 2
+    end)
   end
 
   for name <- [:cache, {:local, :cache}, {:global, :cache}, {:via, :global, :cache}] do
     test "registration #{inspect name}" do
-      ConCache.BalancedLock.start_link
-      ConCache.Registry.create
-      name = unquote(Macro.escape(name))
-      ConCache.start_link([], name: name)
-      ConCache.put(name, :a, 1)
-      assert ConCache.get(name, :a) == 1
+      with_app(fn ->
+        name = unquote(Macro.escape(name))
+        ConCache.start_link([], name: name)
+        ConCache.put(name, :a, 1)
+        assert ConCache.get(name, :a) == 1
+      end)
     end
   end
 end

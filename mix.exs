@@ -1,6 +1,6 @@
 Code.ensure_loaded?(Hex) and Hex.start
 
-defmodule Lock.Mixfile do
+defmodule ConCache.Mixfile do
   use Mix.Project
 
   def project do
@@ -19,7 +19,7 @@ defmodule Lock.Mixfile do
   end
 
   def application do
-    []
+    [applications: [:exactor], mod: {ConCache.Application, []}]
   end
 
   defp deps do
