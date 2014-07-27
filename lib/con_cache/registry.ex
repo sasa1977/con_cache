@@ -2,7 +2,7 @@ defmodule ConCache.Registry do
   use ExActor.Tolerant, export: :con_cache_registry
 
   definit do
-    :ets.new(:con_cache_registry, [:set, :named_table, {:read_concurrency, true}, :protected])
+    _ = :ets.new(:con_cache_registry, [:set, :named_table, {:read_concurrency, true}, :protected])
     initial_state(nil)
   end
 

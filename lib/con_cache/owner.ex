@@ -36,7 +36,7 @@ defmodule ConCache.Owner do
     }
 
     state = start_ttl_loop(options)
-    if state.ttl_check != nil do
+    if Map.get(state, :ttl_check) != nil do
       cache = %ConCache{cache | ttl_manager: self}
     end
 

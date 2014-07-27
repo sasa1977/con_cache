@@ -82,10 +82,14 @@ defmodule ConCache.Operations do
     do_update(cache, key, %ConCache.Item{value: new_value, ttl: :renew})
   end
 
-  def dirty_put(%ConCache{ets: ets} = cache, key, %ConCache.Item{ttl: ttl, value: value}) do
+  def dirty_put(
+    %ConCache{ets: ets, owner_pid: owner_pid} = cache,
+    key,
+    %ConCache.Item{ttl: ttl, value: value}
+  ) do
     set_ttl(cache, key, ttl)
     :ets.insert(ets, {key, value})
-    invoke_callback(cache, {:update, cache.owner_pid, key, value})
+    invoke_callback(cache, {:update, owner_pid, key, value})
     :ok
   end
 
@@ -145,9 +149,9 @@ defmodule ConCache.Operations do
     do_delete(cache, key)
   end
 
-  defp do_delete(%ConCache{ets: ets} = cache, key) do
+  defp do_delete(%ConCache{ets: ets, owner_pid: owner_pid} = cache, key) do
     try do
-      invoke_callback(cache, {:delete, cache.owner_pid, key})
+      invoke_callback(cache, {:delete, owner_pid, key})
     after
       :ets.delete(ets, key)
     end
