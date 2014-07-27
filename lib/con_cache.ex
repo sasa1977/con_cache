@@ -3,6 +3,8 @@ defmodule ConCache.Item do
 end
 
 defmodule ConCache do
+  import ConCache.Helper
+
   defstruct [
     :owner_pid, :ets, :ttl_manager, :ttl, :acquire_lock_timeout, :callback, :touch_on_read
   ]
@@ -15,37 +17,26 @@ defmodule ConCache do
     ConCache.Owner.start(options, gen_server_options)
   end
 
-  operations = [
-    ets: 1,
-    isolated: 3,
-    isolated: 4,
-    try_isolated: 3,
-    try_isolated: 4,
-    get: 2,
-    get_all: 1,
-    put: 3,
-    insert_new: 3,
-    dirty_insert_new: 3,
-    update: 3,
-    dirty_update: 3,
-    update_existing: 3,
-    dirty_update_existing: 3,
-    dirty_put: 3,
-    get_or_store: 3,
-    dirty_get_or_store: 3,
-    delete: 2,
-    dirty_delete: 2,
-    with_existing: 3,
-    touch: 2,
-    size: 1,
-    memory: 1,
-    memory_bytes: 1
-  ]
-
-  for {name, arity} <- operations do
-    [cache | rest] = args = Enum.map(1..arity, &Macro.var(:"arg#{&1}", __MODULE__))
-    def unquote(name)(unquote_splicing(args)) do
-      ConCache.Operations.unquote(name)(unquote_splicing([quote(do: ConCache.Owner.cache(unquote(cache))) | rest]))
-    end
-  end
+  defcacheop ets(cache)
+  defcacheop size(cache)
+  defcacheop memory(cache)
+  defcacheop memory_bytes(cache)
+  defcacheop get(cache, key)
+  defcacheop get_all(cache)
+  defcacheop put(cache, key, value)
+  defcacheop dirty_put(cache, key, value)
+  defcacheop insert_new(cache, key, value)
+  defcacheop dirty_insert_new(cache, key, value)
+  defcacheop update(cache, key, update_fun)
+  defcacheop dirty_update(cache, key, update_fun)
+  defcacheop update_existing(cache, key, update_fun)
+  defcacheop dirty_update_existing(cache, key, update_fun)
+  defcacheop delete(cache, key)
+  defcacheop dirty_delete(cache, key)
+  defcacheop get_or_store(cache, key, store_fun)
+  defcacheop dirty_get_or_store(cache, key, store_fun)
+  defcacheop with_existing(cache, key, fun)
+  defcacheop touch(cache, key)
+  defcacheop isolated(cache, key, timeout \\ nil, fun)
+  defcacheop try_isolated(cache, key, timeout \\ nil, on_success)
 end
