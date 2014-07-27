@@ -1,4 +1,5 @@
 defmodule ConCache.Operations do
+  @moduledoc false
   def ets(%ConCache{ets: ets}), do: ets
 
   def isolated(cache, key, timeout \\ nil, fun) do

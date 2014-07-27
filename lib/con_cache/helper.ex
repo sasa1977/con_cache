@@ -1,4 +1,5 @@
 defmodule ConCache.Helper do
+  @moduledoc false
   defmacro defcacheop({name, _, [cache_arg | rest_args] = all_args}) do
     forward_args = [
       quote(do: ConCache.Owner.cache(unquote(cache_arg))) |

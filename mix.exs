@@ -3,10 +3,12 @@ Code.ensure_loaded?(Hex) and Hex.start
 defmodule ConCache.Mixfile do
   use Mix.Project
 
+  @version "0.3.0-dev"
+
   def project do
     [
       app: :con_cache,
-      version: "0.3.0-dev",
+      version: @version,
       elixir: "~> 0.14.3",
       deps: deps,
       package: [
@@ -14,7 +16,13 @@ defmodule ConCache.Mixfile do
         licenses: ["MIT"],
         links: [{"Github", "https://github.com/sasa1977/con_cache"}]
       ],
-      description: "ETS based key-value storage with support for row-level isolated writes, TTL auto-purge, and modification callbacks."
+      description: "ETS based key-value storage with support for row-level isolated writes, TTL auto-purge, and modification callbacks.",
+      docs: [
+        readme: true,
+        main: "README",
+        source_url: "https://github.com/sasa1977/con_cache/",
+        source_ref: @version
+      ]
     ]
   end
 
@@ -23,6 +31,9 @@ defmodule ConCache.Mixfile do
   end
 
   defp deps do
-    [{:exactor, "~> 0.5.0"}]
+    [
+      {:exactor, "~> 0.5.0"},
+      {:ex_doc, github: "elixir-lang/ex_doc", only: :docs}
+    ]
   end
 end

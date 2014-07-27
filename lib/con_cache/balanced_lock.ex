@@ -1,4 +1,5 @@
 defmodule ConCache.BalancedLock do
+  @moduledoc false
   import Supervisor.Spec
 
   def start_link do

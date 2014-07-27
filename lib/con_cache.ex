@@ -1,4 +1,5 @@
 defmodule ConCache.Item do
+  @moduledoc false
   defstruct value: nil, ttl: 0
 end
 

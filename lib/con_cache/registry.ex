@@ -1,4 +1,6 @@
 defmodule ConCache.Registry do
+  @moduledoc false
+
   use ExActor.Tolerant, export: :con_cache_registry
 
   definit do

@@ -1,4 +1,6 @@
 defmodule ConCache.Owner do
+  @moduledoc false
+
   use ExActor.Tolerant
   use Bitwise
 
