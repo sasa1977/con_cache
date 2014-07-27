@@ -6,7 +6,9 @@ ConCache (Concurrent Cache) is an ETS based key/value storage with following add
 * TTL support
 * modification callbacks
 
-## Usage
+There is currently no proper reference documentation. For quick info, you can take a look at `con_cache.ex` where all interface functions are listed, and typespecs are provided.
+
+## Usage in OTP applications
 
 Setup project and app dependency in your `mix.exs`:
 
@@ -23,8 +25,6 @@ Setup project and app dependency in your `mix.exs`:
 
   ...
 ```
-
-### Typical usage
 
 A cache can be started using `ConCache.start` or `ConCache.start_link` functions. Both functions take two arguments - the first one being a list of ConCache options, and the second one a list of GenServer options for the process being started.
 
