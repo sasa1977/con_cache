@@ -3,7 +3,7 @@ Code.ensure_loaded?(Hex) and Hex.start
 defmodule ConCache.Mixfile do
   use Mix.Project
 
-  @version "0.3.0-dev"
+  @version "0.3.0"
 
   def project do
     [
