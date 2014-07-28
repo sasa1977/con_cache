@@ -1,4 +1,5 @@
-defmodule Lock do
+defmodule ConCache.Lock do
+  @moduledoc false
   require Record
 
   @type key :: any
@@ -44,17 +45,15 @@ defmodule Lock do
   end
 
   defp try_wait_for_lock(server, id, timeout, fun) do
-    receive do
-      {:lock, ^id, ^server, :acquired} ->
-        try do
-          fun.()
-        after
-          unlock(server, self, id)
-        end
-      {:lock, ^id, ^server, :not_acquired} -> {:lock, :not_acquired}
-    after timeout ->
+    try do
+      receive do
+        {:lock, ^id, ^server, :acquired} -> fun.()
+        {:lock, ^id, ^server, :not_acquired} -> {:lock, :not_acquired}
+      after timeout ->
+        {:lock, :not_acquired}
+      end
+    after
       unlock(server, self, id)
-      {:lock, :not_acquired}
     end
   end
 

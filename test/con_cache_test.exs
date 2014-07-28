@@ -1,10 +1,22 @@
 defmodule ConCacheTest do
   use ExUnit.Case, async: false
 
+  defp with_app(fun) do
+    try do
+      Application.ensure_all_started(:con_cache)
+      fun.()
+    after
+      :error_logger.tty(false)
+      Application.stop(:con_cache)
+      :error_logger.tty(true)
+    end
+  end
+
   defp with_cache(opts \\ [], fun) do
-    cache = ConCache.start_link(opts)
-    fun.(cache)
-    ConCache.stop(cache)
+    with_app(fn ->
+      {:ok, cache} = ConCache.start(opts)
+      fun.(cache)
+    end)
   end
 
 
@@ -116,30 +128,16 @@ defmodule ConCacheTest do
     with_cache(
       [ets_options: [:named_table, {:name, :test_name}]],
       fn(cache) ->
-        assert :ets.info(cache.ets, :named_table) == true
-        assert :ets.info(cache.ets, :name) == :test_name
-      end
-    )
-  end
-
-  test "from_ets" do
-    with_cache(
-      [ets: :ets.new(:custom_ets, [:public])],
-      fn(cache) ->
-        assert ConCache.get(cache, :a) == nil
-        assert ConCache.put(cache, :a, 1) == :ok
-        assert ConCache.get(cache, :a) == 1
-
-        assert catch_throw ConCache.start_link(ets: :ets.new(:custom_ets, [:protected]))
-        assert catch_throw ConCache.start_link(ets: :ets.new(:custom_ets, [:private]))
-        assert catch_throw ConCache.start_link(ets: :ets.new(:custom_ets, [:bag]))
+        assert :ets.info(ConCache.ets(cache), :named_table) == true
+        assert :ets.info(ConCache.ets(cache), :name) == :test_name
       end
     )
   end
 
   test "callback" do
+    me = self
     with_cache(
-      [callback: &send(self, &1)],
+      [callback: &send(me, &1)],
       fn(cache) ->
         ConCache.put(cache, :a, 1)
         assert_receive {:update, ^cache, :a, 1}
@@ -156,10 +154,10 @@ defmodule ConCacheTest do
     )
   end
 
-  test "ttl" do
-    Enum.each([1, 2, 4, 8], fn(time_size) ->
+  Enum.each([1, 2, 4, 8], fn(time_size) ->
+    test "ttl #{time_size}" do
       with_cache(
-        [ttl_check: 10, ttl: 50, time_size: time_size],
+        [ttl_check: 10, ttl: 50, time_size: unquote(time_size)],
         fn(cache) ->
           ConCache.put(cache, :a, 1)
           :timer.sleep(40)
@@ -186,8 +184,8 @@ defmodule ConCacheTest do
           assert ConCache.get(cache, :a) == nil
         end
       )
-    end)
-  end
+    end
+  end)
 
   defp test_renew_ttl(cache, fun) do
     ConCache.put(cache, :a, 1)
@@ -239,5 +237,29 @@ defmodule ConCacheTest do
 
       assert ConCache.isolated(cache, :a, fn() -> 2 end) == 2
     end)
+  end
+
+  test "multiple" do
+    with_app(fn ->
+      {:ok, cache1} = ConCache.start
+      {:ok, cache2} = ConCache.start
+      ConCache.put(cache1, :a, 1)
+      ConCache.put(cache2, :b, 2)
+      assert ConCache.get(cache1, :a) == 1
+      assert ConCache.get(cache1, :b) == nil
+      assert ConCache.get(cache2, :a) == nil
+      assert ConCache.get(cache2, :b) == 2
+    end)
+  end
+
+  for name <- [:cache, {:local, :cache}, {:global, :cache}, {:via, :global, :cache}] do
+    test "registration #{inspect name}" do
+      with_app(fn ->
+        name = unquote(Macro.escape(name))
+        ConCache.start([], name: name)
+        ConCache.put(name, :a, 1)
+        assert ConCache.get(name, :a) == 1
+      end)
+    end
   end
 end

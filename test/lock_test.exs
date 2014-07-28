@@ -2,33 +2,33 @@ defmodule LockTest do
   use ExUnit.Case, async: true
 
   test "basic" do
-    assert conduct_test(elem(Lock.start_link, 1)) == [{0,18},{1,22},{2,15}]
+    assert conduct_test({ConCache.Lock, ConCache.Lock.start_link}) == [{0,18},{1,22},{2,15}]
   end
 
   test "balancer" do
-    assert conduct_test(BalancedLock.start_link(10)) == [{0,18},{1,22},{2,15}]
+    assert conduct_test({ConCache.BalancedLock, ConCache.BalancedLock.start_link}) == [{0,18},{1,22},{2,15}]
   end
-  
+
   test "timeout" do
-    {:ok, lock} = Lock.start_link
-    spawn(fn() -> Lock.exec(lock, :a, fn() -> :timer.sleep(100) end) end)
+    {:ok, lock} = ConCache.Lock.start_link
+    spawn(fn() -> ConCache.Lock.exec(lock, :a, fn() -> :timer.sleep(100) end) end)
     :timer.sleep(10)
-    assert catch_throw(Lock.exec(lock, :a, 1, fn() -> :ok end))
+    assert catch_throw(ConCache.Lock.exec(lock, :a, 1, fn() -> :ok end))
   end
 
   test "try" do
-    {:ok, lock} = Lock.start_link
-    assert Lock.try_exec(lock, :a, fn() -> 1 end) == 1
-    spawn(fn() -> Lock.try_exec(lock, :a, fn() -> :timer.sleep(100) end) end)
+    {:ok, lock} = ConCache.Lock.start_link
+    assert ConCache.Lock.try_exec(lock, :a, fn() -> 1 end) == 1
+    spawn(fn() -> ConCache.Lock.try_exec(lock, :a, fn() -> :timer.sleep(100) end) end)
     :timer.sleep(20)
-    assert Lock.try_exec(lock, :a, fn() -> 2 end) == {:lock, :not_acquired}
+    assert ConCache.Lock.try_exec(lock, :a, fn() -> 2 end) == {:lock, :not_acquired}
     :timer.sleep(100)
-    assert Lock.try_exec(lock, :a, fn() -> 3 end) == 3
+    assert ConCache.Lock.try_exec(lock, :a, fn() -> 3 end) == 3
   end
-  
+
   test "double lock" do
     assert conduct_test(
-      elem(Lock.start_link, 1),
+      {ConCache.Lock, ConCache.Lock.start_link},
       nil,
       fn(ets, lock, _) ->
         exec_lock(lock, 1, fn() ->
@@ -43,7 +43,7 @@ defmodule LockTest do
 
   test "multiple" do
     assert conduct_test(
-      elem(Lock.start_link, 1),
+      {ConCache.Lock, ConCache.Lock.start_link},
       nil,
       fn(ets, lock, custom) ->
         Enum.each(1..2, fn(_) ->
@@ -56,9 +56,9 @@ defmodule LockTest do
 
   test "exception" do
     :error_logger.tty(false)
-    
+
     assert conduct_test(
-      elem(Lock.start_link, 1),
+      {ConCache.Lock, ConCache.Lock.start_link},
       fn
         (3) -> throw(:exit)
         _ -> :ok
@@ -70,9 +70,9 @@ defmodule LockTest do
 
   test "exit" do
     :error_logger.tty(false)
-    
+
     assert conduct_test(
-      elem(Lock.start_link, 1),
+      {ConCache.Lock, ConCache.Lock.start_link},
       fn
         (4) -> exit(:kill)
         _ -> :ok
@@ -85,7 +85,7 @@ defmodule LockTest do
 
     body.(ets, lock, custom)
 
-    :ets.tab2list(ets) 
+    :ets.tab2list(ets)
     |> Enum.sort
   end
 
@@ -102,7 +102,7 @@ defmodule LockTest do
         (custom || fn(_) -> end).(x)
         exec_lock(lock, key, fn() ->
           :timer.sleep(10)
-          
+
           new_value = case :ets.lookup(ets, key) do
             [{_, old_value}] -> old_value + x
             _ -> x
@@ -114,11 +114,11 @@ defmodule LockTest do
     end)
   end
 
-  defp exec_lock(balancer, key, fun) when is_tuple(balancer) do
-    BalancedLock.exec(balancer, key, fun)
+  defp exec_lock({ConCache.BalancedLock, _}, key, fun) do
+    ConCache.BalancedLock.exec(key, fun)
   end
 
-  defp exec_lock(lock, key, fun) when is_pid(lock) do
-    Lock.exec(lock, key, fun)
+  defp exec_lock({ConCache.Lock, {:ok, lock_pid}}, key, fun) do
+    ConCache.Lock.exec(lock_pid, key, fun)
   end
 end

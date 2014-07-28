@@ -1,7 +1,5 @@
-defmodule TtlManager do
-  @type options :: Keyword.t
-  @type key :: any
-  @type ttl :: non_neg_integer | :renew
+defmodule ConCache.Owner do
+  @moduledoc false
 
   use ExActor.Tolerant
   use Bitwise
@@ -13,34 +11,98 @@ defmodule TtlManager do
     ttls: nil,
     max_time: nil,
     on_expire: nil,
-    pending_ttl_sets: HashDict.new
+    pending_ttl_sets: HashDict.new,
+    monitor_ref: nil
   ]
 
-  @spec start(options) :: {:ok, pid}
-  @spec start_link(options) :: {:ok, pid}
+  require Record
+  Record.defrecordp :ets_options, name: :con_cache, type: :set, options: [:public]
 
-  def init(options) do
-    %__MODULE__{
-      ttl_check: options[:ttl_check] || :timer.seconds(1),
-      on_expire: options[:on_expire] || nil,
-      pending: :ets.new(:ttl_manager_pending, [:private, :bag]),
-      ttls: :ets.new(:ttl_manager_ttls, [:private, :set]),
-      max_time: (1 <<< (options[:time_size] || 16)) - 1
+  def cache({:local, local}) when is_atom(local), do: cache(local)
+  def cache(local) when is_atom(local), do: ConCache.Registry.get(Process.whereis(local))
+  def cache({:global, name}), do: cache({:via, :global, name})
+  def cache({:via, module, name}), do: cache(module.whereis_name(name))
+  def cache(pid) when is_pid(pid), do: ConCache.Registry.get(pid)
+
+  definit options do
+    ets = create_ets(options[:ets_options] || [])
+    check_ets(ets)
+
+    cache = %ConCache{
+      owner_pid: self,
+      ets: ets,
+      ttl: options[:ttl] || 0,
+      acquire_lock_timeout: options[:acquire_lock_timeout] || 5000,
+      callback: options[:callback],
+      touch_on_read: options[:touch_on_read] || false
     }
-    |> queue_check
-    |> initial_state
+
+    state = start_ttl_loop(options)
+    if Map.get(state, :ttl_check) != nil do
+      cache = %ConCache{cache | ttl_manager: self}
+    end
+
+    state = %__MODULE__{state | monitor_ref: Process.monitor(Process.whereis(:con_cache_registry))}
+    ConCache.Registry.register(cache)
+
+    initial_state(state)
   end
 
-  defcast stop, state: state do
-    {:stop, :normal, state}
+  defp create_ets(input_options) do
+    ets_options(name: name, type: type, options: options) = parse_ets_options(input_options)
+    :ets.new(name, [type | options])
   end
 
-  @spec clear_ttl(pid | atom, key) :: :ok
+  defp parse_ets_options(input_options) do
+    Enum.reduce(
+      input_options,
+      ets_options(),
+        fn
+          (:named_table, acc) -> append_option(acc, :named_table)
+          (:compressed, acc) -> append_option(acc, :compressed)
+          ({:heir, _} = opt, acc) -> append_option(acc, opt)
+          ({:write_concurrency, _} = opt, acc) -> append_option(acc, opt)
+          ({:read_concurrency, _} = opt, acc) -> append_option(acc, opt)
+          (:ordered_set, acc) -> ets_options(acc, type: :ordered_set)
+          (:set, acc) -> ets_options(acc, type: :set)
+          ({:name, name}, acc) -> ets_options(acc, name: name)
+          (other, _) -> throw({:invalid_ets_option, other})
+        end
+    )
+  end
+
+  defp append_option(ets_options(options: options) = ets_options, option) do
+    ets_options(ets_options, options: [option | options])
+  end
+
+  defp check_ets(ets) do
+    if (:ets.info(ets, :keypos) > 1), do: throw({:error, :invalid_keypos})
+    if (:ets.info(ets, :protection) != :public), do: throw({:error, :invalid_protection})
+    if (not (:ets.info(ets, :type) in [:set, :ordered_set])), do: throw({:error, :invalid_type})
+  end
+
+  defp start_ttl_loop(options) do
+    me = self
+    case options[:ttl_check] do
+      ttl_check when is_integer(ttl_check) and ttl_check > 0 ->
+        %__MODULE__{
+          ttl_check: ttl_check,
+          on_expire: &ConCache.delete(me, &1),
+          pending: :ets.new(:ttl_manager_pending, [:private, :bag]),
+          ttls: :ets.new(:ttl_manager_ttls, [:private, :set]),
+          max_time: (1 <<< (options[:time_size] || 16)) - 1
+        }
+        |> queue_check
+
+      _ -> %__MODULE__{ttl_check: nil}
+    end
+  end
+
+
   def clear_ttl(server, key) do
     set_ttl(server, key, 0)
   end
 
-  @spec set_ttl(pid | atom, key, ttl) :: :ok
   defcast set_ttl(key, ttl), state: %__MODULE__{pending_ttl_sets: pending_ttl_sets} = state do
     %__MODULE__{state | pending_ttl_sets: Dict.update(pending_ttl_sets, key, ttl, &queue_ttl_set(&1, ttl))}
     |> new_state
@@ -124,6 +186,10 @@ defmodule TtlManager do
     |> purge
     |> queue_check
     |> new_state
+  end
+
+  definfo {:DOWN, ref1, _, _, reason}, state: %__MODULE__{monitor_ref: ref2} = state, when: ref1 == ref2 do
+    {:stop, reason, state}
   end
 
   definfo _, do: noreply
