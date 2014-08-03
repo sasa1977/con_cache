@@ -55,7 +55,7 @@ defmodule LockTest do
   end
 
   test "exception" do
-    :error_logger.tty(false)
+    Logger.remove_backend(:console)
 
     assert conduct_test(
       {ConCache.Lock, ConCache.Lock.start_link},
@@ -65,11 +65,11 @@ defmodule LockTest do
       end
     ) == [{0,15},{1,22},{2,15}]
 
-    :error_logger.tty(true)
+    Logger.add_backend(:console)
   end
 
   test "exit" do
-    :error_logger.tty(false)
+    Logger.remove_backend(:console)
 
     assert conduct_test(
       {ConCache.Lock, ConCache.Lock.start_link},
@@ -78,6 +78,8 @@ defmodule LockTest do
         _ -> :ok
       end
     ) == [{0,18},{1,18},{2,15}]
+
+    Logger.add_backend(:console)
   end
 
   defp conduct_test(lock, custom \\ fn(_) -> nil end, body \\ &default_body/3) do

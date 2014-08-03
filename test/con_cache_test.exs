@@ -3,12 +3,12 @@ defmodule ConCacheTest do
 
   defp with_app(fun) do
     try do
+      Logger.add_backend(:console)
       Application.ensure_all_started(:con_cache)
       fun.()
     after
-      :error_logger.tty(false)
+      Logger.remove_backend(:console)
       Application.stop(:con_cache)
-      :error_logger.tty(true)
     end
   end
 
