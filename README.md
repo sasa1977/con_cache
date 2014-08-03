@@ -16,7 +16,7 @@ Setup project and app dependency in your `mix.exs`:
   ...
 
   defp deps do
-    [{:con_cache, "~> 0.3.0"}, ...]
+    [{:con_cache, "~> 0.4.0"}, ...]
   end
 
   def application do
