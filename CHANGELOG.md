@@ -1,3 +1,6 @@
+# v0.4.0
+- upgrade to Elixir v0.15.0
+
 # v0.3.0
 
 With this version, ConCache is turned into a proper application that obeys OTP principles. This required some changes to the way ConCache is used.
