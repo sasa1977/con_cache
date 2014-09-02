@@ -1,3 +1,6 @@
+# v0.5.0
+- upgrade to Elixir v1.0.0-rc1
+
 # v0.4.0
 - upgrade to Elixir v0.15.0
 
