@@ -25,7 +25,7 @@ defmodule ConCache.BalancedLock do
 
   defp worker_alias(index), do: :"con_cache_lock_worker_#{index}"
 
-  defp lock_pid(id), do: Process.whereis(worker_alias(:erlang.phash2(id, size)))
+  defp lock_pid(id), do: Process.whereis(worker_alias(:erlang.phash2(id, size) + 1))
 
   defp size, do: :erlang.system_info(:schedulers)
 end
