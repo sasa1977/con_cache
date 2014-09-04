@@ -6,7 +6,7 @@ defmodule LockTest do
   end
 
   test "balancer" do
-    assert conduct_test({ConCache.BalancedLock, ConCache.BalancedLock.start_link}) == [{0,18},{1,22},{2,15}]
+    assert conduct_test({ConCache.BalancedLock, nil}) == [{0,18},{1,22},{2,15}]
   end
 
   test "timeout" do
