@@ -1,3 +1,6 @@
+# v0.6.0
+- Elixir v1.0.0
+
 # v0.5.1
 - bugfix: balanced lock wasn't working properly
 

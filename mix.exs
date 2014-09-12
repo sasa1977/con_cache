@@ -3,13 +3,13 @@ Code.ensure_loaded?(Hex) and Hex.start
 defmodule ConCache.Mixfile do
   use Mix.Project
 
-  @version "0.5.1"
+  @version "0.6.0"
 
   def project do
     [
       app: :con_cache,
       version: @version,
-      elixir: "~> 1.0.0-rc1",
+      elixir: "~> 1.0.0",
       deps: deps,
       package: [
         contributors: ["Saša Jurić"],
@@ -32,8 +32,8 @@ defmodule ConCache.Mixfile do
 
   defp deps do
     [
-      {:exactor, "~> 0.7.0"},
-      {:ex_doc, github: "elixir-lang/ex_doc", only: :docs}
+      {:exactor, "~> 1.0.0"},
+      {:ex_doc, "~> 0.6.0", only: :docs}
     ]
   end
 end

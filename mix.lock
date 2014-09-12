@@ -1,2 +1,2 @@
-%{"ex_doc": {:git, "git://github.com/elixir-lang/ex_doc.git", "1aa244a7e498fec0f18ba83964cd7fcc0e568132", []},
-  "exactor": {:package, "0.7.0"}}
+%{"ex_doc": {:package, "0.6.0"},
+  "exactor": {:package, "1.0.0"}}
