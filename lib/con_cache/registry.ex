@@ -3,7 +3,7 @@ defmodule ConCache.Registry do
 
   use ExActor.Tolerant, export: :con_cache_registry
 
-  definit do
+  defstart start_link do
     _ = :ets.new(:con_cache_registry, [:set, :named_table, {:read_concurrency, true}, :protected])
     initial_state(nil)
   end
@@ -19,8 +19,10 @@ defmodule ConCache.Registry do
     cache
   end
 
-  definfo {:DOWN, _, :process, pid, _} do
+  defhandleinfo {:DOWN, _, :process, pid, _} do
     :ets.delete(:con_cache_registry, pid)
     noreply
   end
+
+  defhandleinfo _, do: noreply
 end

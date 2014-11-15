@@ -24,7 +24,8 @@ defmodule ConCache.Owner do
   def cache({:via, module, name}), do: cache(module.whereis_name(name))
   def cache(pid) when is_pid(pid), do: ConCache.Registry.get(pid)
 
-  definit options do
+  defstart start_link(options \\ []), gen_server_opts: :runtime
+  defstart start(options \\ []), gen_server_opts: :runtime do
     ets = create_ets(options[:ets_options] || [])
     check_ets(ets)
 
@@ -179,7 +180,7 @@ defmodule ConCache.Owner do
     state
   end
 
-  definfo :check_purge, state: state do
+  defhandleinfo :check_purge, state: state do
     state
     |> apply_pending_ttls
     |> increase_time
@@ -188,11 +189,12 @@ defmodule ConCache.Owner do
     |> new_state
   end
 
-  definfo {:DOWN, ref1, _, _, reason}, state: %__MODULE__{monitor_ref: ref2} = state, when: ref1 == ref2 do
-    {:stop, reason, state}
-  end
+  defhandleinfo {:DOWN, ref1, _, _, reason},
+    state: %__MODULE__{monitor_ref: ref2},
+    when: ref1 == ref2,
+    do: stop_server(reason)
 
-  definfo _, do: noreply
+  defhandleinfo _, do: noreply
 
   defp increase_time(%__MODULE__{current_time: max, max_time: max} = state) do
     normalize_pending(state)

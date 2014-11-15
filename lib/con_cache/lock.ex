@@ -9,14 +9,17 @@ defmodule ConCache.Lock do
   Record.defrecordp :item, pending: :gb_trees.empty, locked: nil
   defstruct items: HashDict.new
 
-  use ExActor.Tolerant, initial_state: %__MODULE__{}
+  use ExActor.Tolerant
 
   @spec start :: {:ok, pid}
   @spec start_link :: {:ok, pid}
 
-  defcast stop, state: state do
-    {:stop, :normal, state}
+  defstart start(initial_state \\ nil), gen_server_opts: :runtime
+  defstart start_link(initial_state \\ nil), gen_server_opts: :runtime do
+    initial_state(initial_state || %__MODULE__{})
   end
+
+  defcast stop, do: stop_server(:normal)
 
   @spec exec(pid | atom, key, timeout, job) :: result
   @spec exec(pid | atom, key, job) :: result
