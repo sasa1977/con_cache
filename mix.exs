@@ -18,7 +18,7 @@ defmodule ConCache.Mixfile do
       ],
       description: "ETS based key-value storage with support for row-level isolated writes, TTL auto-purge, and modification callbacks.",
       docs: [
-        readme: true,
+        readme: "README.md",
         main: "README",
         source_url: "https://github.com/sasa1977/con_cache/",
         source_ref: @version
@@ -32,8 +32,8 @@ defmodule ConCache.Mixfile do
 
   defp deps do
     [
-      {:exactor, "~> 2.0.0"},
-      {:ex_doc, "~> 0.6.0", only: :docs}
+      {:exactor, "~> 2.1.0"},
+      {:ex_doc, "~> 0.7.0", only: :docs}
     ]
   end
 end
