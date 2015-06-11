@@ -13,7 +13,7 @@ defmodule LockTest do
     {:ok, lock} = ConCache.Lock.start_link
     spawn(fn() -> ConCache.Lock.exec(lock, :a, fn() -> :timer.sleep(100) end) end)
     :timer.sleep(10)
-    assert catch_throw(ConCache.Lock.exec(lock, :a, 1, fn() -> :ok end))
+    assert {:timeout, _} = catch_exit(ConCache.Lock.exec(lock, :a, 1, fn() -> :ok end))
   end
 
   test "try" do

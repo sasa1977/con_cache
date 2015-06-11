@@ -207,7 +207,7 @@ defmodule ConCacheTest do
         assert ConCache.get(cache, :a) == 1
         :timer.sleep(40)
         assert ConCache.get(cache, :a) == 1
-        :timer.sleep(70)
+        :timer.sleep(100)
         assert ConCache.get(cache, :a) == nil
       end
     )
