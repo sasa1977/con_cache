@@ -2,12 +2,13 @@ defmodule ConCache.Lock do
   @moduledoc false
 
   alias ConCache.Lock.Resource
+  alias ConCache.Lock.Monitors
 
   @type key :: any
   @type result :: any
   @type job :: (() -> result)
 
-  defstruct resources: HashDict.new
+  defstruct resources: HashDict.new, monitors: Monitors.new
 
   use ExActor.Tolerant
 
@@ -61,6 +62,7 @@ defmodule ConCache.Lock do
 
   defp add_resource_owner(state, id, resource, {caller_pid, _} = from) do
     state
+    |> inc_monitor_ref(caller_pid)
     |> handle_resource_change(id, Resource.inc_lock(resource, caller_pid, from))
     |> new_state
   end
@@ -68,6 +70,7 @@ defmodule ConCache.Lock do
 
   defcallp unlock(id), from: {caller_pid, _}, state: state do
     state
+    |> dec_monitor_ref(caller_pid)
     |> handle_resource_change(id, Resource.dec_lock(resource(state, id), caller_pid))
     |> set_and_reply(:ok)
   end
@@ -84,9 +87,7 @@ defmodule ConCache.Lock do
       GenServer.reply(from, :acquired)
       resource
     else
-      resource
-      |> Resource.remove_client(Resource.owner(resource))
-      |> maybe_notify_client
+      remove_client_from_resource(resource, Resource.owner(resource))
     end
   end
 
@@ -101,4 +102,41 @@ defmodule ConCache.Lock do
   defp store_resource(%__MODULE__{resources: resources} = state, id, resource) do
     %__MODULE__{state | resources: HashDict.put(resources, id, resource)}
   end
+
+  defp remove_client_from_all_resources(%__MODULE__{resources: resources} = state, caller_pid) do
+    %__MODULE__{state |
+      resources:
+        for {id, resource} <- resources, into: HashDict.new do
+          {id, remove_client_from_resource(resource, caller_pid)}
+        end
+    }
+  end
+
+  defp remove_client_from_resource(resource, caller_pid) do
+    resource
+    |> Resource.remove_client(caller_pid)
+    |> maybe_notify_client
+  end
+
+
+  defp inc_monitor_ref(%__MODULE__{monitors: monitors} = state, caller_pid) do
+    %__MODULE__{state | monitors: Monitors.inc_ref(monitors, caller_pid)}
+  end
+
+  defp dec_monitor_ref(%__MODULE__{monitors: monitors} = state, caller_pid) do
+    %__MODULE__{state | monitors: Monitors.dec_ref(monitors, caller_pid)}
+  end
+
+  defp unmonitor(%__MODULE__{monitors: monitors} = state, caller_pid) do
+    %__MODULE__{state | monitors: Monitors.remove(monitors, caller_pid)}
+  end
+
+  defhandleinfo {:DOWN, _, _, caller_pid, _}, state: state do
+    state
+    |> unmonitor(caller_pid)
+    |> remove_client_from_all_resources(caller_pid)
+    |> new_state
+  end
+
+  defhandleinfo _, do: noreply
 end

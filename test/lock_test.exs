@@ -16,6 +16,14 @@ defmodule LockTest do
     assert {:timeout, _} = catch_exit(ConCache.Lock.exec(lock, :a, 1, fn() -> :ok end))
   end
 
+  test "monitor" do
+    {:ok, lock} = ConCache.Lock.start_link
+    pid = spawn(fn() -> ConCache.Lock.exec(lock, :a, fn() -> :timer.sleep(:infinity) end) end)
+    :timer.sleep(10)
+    Process.exit(pid, :kill)
+    assert ConCache.Lock.exec(lock, :a, fn() -> :ok end) == :ok
+  end
+
   test "try" do
     {:ok, lock} = ConCache.Lock.start_link
     assert ConCache.Lock.try_exec(lock, :a, fn() -> 1 end) == 1
