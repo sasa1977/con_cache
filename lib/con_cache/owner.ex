@@ -15,9 +15,6 @@ defmodule ConCache.Owner do
     monitor_ref: nil
   ]
 
-  require Record
-  Record.defrecordp :ets_options, name: :con_cache, type: :set, options: [:public]
-
   def cache({:local, local}) when is_atom(local), do: cache(local)
   def cache(local) when is_atom(local), do: ConCache.Registry.get(Process.whereis(local))
   def cache({:global, name}), do: cache({:via, :global, name})
@@ -50,30 +47,30 @@ defmodule ConCache.Owner do
   end
 
   defp create_ets(input_options) do
-    ets_options(name: name, type: type, options: options) = parse_ets_options(input_options)
+    %{name: name, type: type, options: options} = parse_ets_options(input_options)
     :ets.new(name, [type | options])
   end
 
   defp parse_ets_options(input_options) do
     Enum.reduce(
       input_options,
-      ets_options(),
+      %{name: :con_cache, type: :set, options: [:public]},
         fn
           (:named_table, acc) -> append_option(acc, :named_table)
           (:compressed, acc) -> append_option(acc, :compressed)
           ({:heir, _} = opt, acc) -> append_option(acc, opt)
           ({:write_concurrency, _} = opt, acc) -> append_option(acc, opt)
           ({:read_concurrency, _} = opt, acc) -> append_option(acc, opt)
-          (:ordered_set, acc) -> ets_options(acc, type: :ordered_set)
-          (:set, acc) -> ets_options(acc, type: :set)
-          ({:name, name}, acc) -> ets_options(acc, name: name)
+          (:ordered_set, acc) -> %{acc | type: :ordered_set}
+          (:set, acc) -> %{acc | type: :set}
+          ({:name, name}, acc) -> %{acc | name: name}
           (other, _) -> throw({:invalid_ets_option, other})
         end
     )
   end
 
-  defp append_option(ets_options(options: options) = ets_options, option) do
-    ets_options(ets_options, options: [option | options])
+  defp append_option(%{options: options} = ets_options, option) do
+    %{ets_options | options: [option | options]}
   end
 
   defp check_ets(ets) do
