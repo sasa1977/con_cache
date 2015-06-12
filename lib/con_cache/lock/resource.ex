@@ -64,12 +64,14 @@ defmodule ConCache.Lock.Resource do
   end
 
 
-  defp dec_owner_lock(%__MODULE__{owner: pid, count: n} = resource, pid) when n > 1 do
-    %__MODULE__{resource | owner: pid, count: n - 1}
+  defp dec_owner_lock(%__MODULE__{owner: pid, count: 1} = resource, pid) do
+    %__MODULE__{resource | owner: nil, count: 0}
   end
 
-  defp dec_owner_lock(%__MODULE__{owner: pid} = resource, pid) do
-    %__MODULE__{resource | owner: nil, count: 0}
+  defp dec_owner_lock(%__MODULE__{owner: pid, count: count} = resource, pid)
+    when count > 1
+  do
+    %__MODULE__{resource | owner: pid, count: count - 1}
   end
 
   defp dec_owner_lock(resource, _), do: resource

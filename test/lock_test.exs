@@ -24,6 +24,16 @@ defmodule LockTest do
     assert ConCache.Lock.exec(lock, :a, fn() -> :ok end) == :ok
   end
 
+  test "monitor 2" do
+    {:ok, lock} = ConCache.Lock.start_link
+    pid1 = spawn(fn() -> ConCache.Lock.exec(lock, :a, fn() -> :timer.sleep(:infinity) end) end)
+    pid2 = spawn(fn() -> ConCache.Lock.exec(lock, :a, fn() -> :timer.sleep(:infinity) end) end)
+    :timer.sleep(10)
+    Process.exit(pid2, :kill)
+    Process.exit(pid1, :kill)
+    assert ConCache.Lock.exec(lock, :a, fn() -> :ok end) == :ok
+  end
+
   test "try" do
     {:ok, lock} = ConCache.Lock.start_link
     assert ConCache.Lock.try_exec(lock, :a, fn() -> 1 end) == 1
