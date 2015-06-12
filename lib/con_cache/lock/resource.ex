@@ -75,7 +75,7 @@ defmodule ConCache.Lock.Resource do
   defp dec_owner_lock(resource, _), do: resource
 
 
-  def remove_client(resource, pid) do
+  def remove_caller(resource, pid) do
     resource
     |> release_owner(pid)
     |> release_pending(pid)

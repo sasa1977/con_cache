@@ -77,17 +77,17 @@ defmodule ConCache.Lock do
 
 
   defp handle_resource_change(state, id, resource_change_result) do
-    resource = maybe_notify_client(resource_change_result)
+    resource = maybe_notify_caller(resource_change_result)
     store_resource(state, id, resource)
   end
 
-  defp maybe_notify_client({:not_acquired, resource}), do: resource
-  defp maybe_notify_client({{:acquired, from}, resource}) do
+  defp maybe_notify_caller({:not_acquired, resource}), do: resource
+  defp maybe_notify_caller({{:acquired, from}, resource}) do
     if Process.alive?(Resource.owner(resource)) do
       GenServer.reply(from, :acquired)
       resource
     else
-      remove_client_from_resource(resource, Resource.owner(resource))
+      remove_caller_from_resource(resource, Resource.owner(resource))
     end
   end
 
@@ -103,19 +103,19 @@ defmodule ConCache.Lock do
     %__MODULE__{state | resources: HashDict.put(resources, id, resource)}
   end
 
-  defp remove_client_from_all_resources(%__MODULE__{resources: resources} = state, caller_pid) do
+  defp remove_caller_from_all_resources(%__MODULE__{resources: resources} = state, caller_pid) do
     %__MODULE__{state |
       resources:
         for {id, resource} <- resources, into: HashDict.new do
-          {id, remove_client_from_resource(resource, caller_pid)}
+          {id, remove_caller_from_resource(resource, caller_pid)}
         end
     }
   end
 
-  defp remove_client_from_resource(resource, caller_pid) do
+  defp remove_caller_from_resource(resource, caller_pid) do
     resource
-    |> Resource.remove_client(caller_pid)
-    |> maybe_notify_client
+    |> Resource.remove_caller(caller_pid)
+    |> maybe_notify_caller
   end
 
 
@@ -134,7 +134,7 @@ defmodule ConCache.Lock do
   defhandleinfo {:DOWN, _, _, caller_pid, _}, state: state do
     state
     |> unmonitor(caller_pid)
-    |> remove_client_from_all_resources(caller_pid)
+    |> remove_caller_from_all_resources(caller_pid)
     |> new_state
   end
 
