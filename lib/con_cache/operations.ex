@@ -3,14 +3,18 @@ defmodule ConCache.Operations do
   def ets(%ConCache{ets: ets}), do: ets
 
   def isolated(cache, key, timeout \\ nil, fun) do
-    ConCache.BalancedLock.exec(key, timeout || cache.acquire_lock_timeout, fun)
+    ConCache.BalancedLock.exec(cache_key(cache, key), timeout || cache.acquire_lock_timeout, fun)
   end
 
   def try_isolated(cache, key, timeout \\ nil, on_success) do
-    case ConCache.BalancedLock.try_exec(key, timeout || cache.acquire_lock_timeout, on_success) do
+    case ConCache.BalancedLock.try_exec(cache_key(cache, key), timeout || cache.acquire_lock_timeout, on_success) do
       {:lock, :not_acquired} -> {:error, :locked}
       response -> response
     end
+  end
+
+  defp cache_key(%ConCache{owner_pid: pid}, key) do
+    {pid, key}
   end
 
   def get(%ConCache{ets: ets} = cache, key) do

@@ -10,7 +10,7 @@ defmodule ConCache.Application do
         worker(ConCache.Registry, []),
         supervisor(ConCache.BalancedLock, [])
       ],
-      strategy: :one_for_one
+      strategy: :one_for_all
     )
   end
 end

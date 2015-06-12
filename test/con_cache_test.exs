@@ -249,6 +249,10 @@ defmodule ConCacheTest do
       assert ConCache.get(cache1, :b) == nil
       assert ConCache.get(cache2, :a) == nil
       assert ConCache.get(cache2, :b) == 2
+
+      spawn(fn -> ConCache.isolated(cache1, :a, fn -> :timer.sleep(:infinity) end) end)
+      assert ConCache.isolated(cache2, :a, fn -> :foo end) == :foo
+      assert {:timeout, _} = catch_exit(ConCache.isolated(cache1, :a, 50, fn -> :bar end))
     end)
   end
 
