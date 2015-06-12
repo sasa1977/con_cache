@@ -91,6 +91,23 @@ defmodule ConCache.Lock do
     end
   end
 
+  defp remove_caller_from_resource(resource, caller_pid) do
+    resource
+    |> Resource.remove_caller(caller_pid)
+    |> maybe_notify_caller
+  end
+
+  defp remove_caller_from_all_resources(%__MODULE__{resources: resources} = state, caller_pid) do
+    Enum.reduce(resources, state,
+      fn({id, resource}, state_acc) ->
+        store_resource(
+          state_acc,
+          id,
+          remove_caller_from_resource(resource, caller_pid)
+        )
+      end
+    )
+  end
 
   defp resource(%__MODULE__{resources: resources}, id) do
     case HashDict.fetch(resources, id) do
@@ -100,22 +117,11 @@ defmodule ConCache.Lock do
   end
 
   defp store_resource(%__MODULE__{resources: resources} = state, id, resource) do
-    %__MODULE__{state | resources: HashDict.put(resources, id, resource)}
-  end
-
-  defp remove_caller_from_all_resources(%__MODULE__{resources: resources} = state, caller_pid) do
-    %__MODULE__{state |
-      resources:
-        for {id, resource} <- resources, into: HashDict.new do
-          {id, remove_caller_from_resource(resource, caller_pid)}
-        end
-    }
-  end
-
-  defp remove_caller_from_resource(resource, caller_pid) do
-    resource
-    |> Resource.remove_caller(caller_pid)
-    |> maybe_notify_caller
+    if Resource.empty?(resource) do
+      %__MODULE__{state | resources: HashDict.delete(resources, id)}
+    else
+      %__MODULE__{state | resources: HashDict.put(resources, id, resource)}
+    end
   end
 
 
