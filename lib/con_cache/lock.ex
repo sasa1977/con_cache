@@ -42,7 +42,7 @@ defmodule ConCache.Lock do
     try do
       fun.()
     after
-      unlock(server, id)
+      unlock(server, id, self)
     end
   end
 
@@ -68,11 +68,11 @@ defmodule ConCache.Lock do
   end
 
 
-  defcallp unlock(id), from: {caller_pid, _}, state: state do
+  defcast unlock(id, caller_pid), state: state do
     state
     |> dec_monitor_ref(caller_pid)
     |> handle_resource_change(id, Resource.dec_lock(resource(state, id), caller_pid))
-    |> set_and_reply(:ok)
+    |> new_state
   end
 
 
