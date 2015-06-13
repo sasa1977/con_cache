@@ -14,12 +14,16 @@ defmodule ConCache.Mixfile do
       package: [
         contributors: ["Saša Jurić"],
         licenses: ["MIT"],
-        links: %{"Github" => "https://github.com/sasa1977/con_cache"}
+        links: %{
+          "Github" => "https://github.com/sasa1977/con_cache",
+          "Docs" => "http://hexdocs.pm/con_cache",
+          "Changelog" => "https://github.com/sasa1977/con_cache/blob/#{@version}/CHANGELOG.md#v#{String.replace(@version, ".", "")}"
+        }
       ],
       description: "ETS based key-value storage with support for row-level isolated writes, TTL auto-purge, and modification callbacks.",
       docs: [
         readme: "README.md",
-        main: "README",
+        main: "ConCache",
         source_url: "https://github.com/sasa1977/con_cache/",
         source_ref: @version
       ]
@@ -33,7 +37,8 @@ defmodule ConCache.Mixfile do
   defp deps do
     [
       {:exactor, "~> 2.1.0"},
-      {:ex_doc, "~> 0.7.0", only: :docs}
+      {:ex_doc, "~> 0.7.0", only: :docs},
+      {:earmark, "~> 0.1", only: :docs}
     ]
   end
 end

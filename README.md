@@ -1,5 +1,9 @@
 # ConCache
 
+[![hex.pm](https://img.shields.io/hexpm/v/con_cache.svg?style=flat-square)](https://hex.pm/packages/con_cache)
+[![hexdocs.pm](https://img.shields.io/badge/docs-latest-green.svg?style=flat-square)](https://hexdocs.pm/con_cache/)
+
+
 ConCache (Concurrent Cache) is an ETS based key/value storage with following additional features:
 
 * row level synchronized writes (inserts, read/modify/write updates, deletes)
@@ -76,10 +80,6 @@ ConCache.get_or_store(:my_cache, key, fn() ->
 end)
 
 
-# Executes function only if item exists. The result is either the function's return value, or nil.
-ConCache.with_existing(:my_cache, key, fn() ->
-  ...
-end)
 ```
 
 Dirty modifiers operate directly on ets record without trying to acquire the row lock:
