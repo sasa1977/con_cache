@@ -31,10 +31,6 @@ defmodule ConCache.Operations do
     touch(cache, key)
   end
 
-  def get_all(%ConCache{ets: ets}) do
-    :ets.tab2list(ets)
-  end
-
   def put(cache, key, value) do
     isolated(cache, key, fn() ->
       dirty_put(cache, key, value)
@@ -164,7 +160,7 @@ defmodule ConCache.Operations do
     :ok
   end
 
-  def with_existing(cache, key, fun) do
+  defp with_existing(cache, key, fun) do
     case get(cache, key) do
       nil -> nil
       existing -> fun.(existing)
@@ -174,14 +170,4 @@ defmodule ConCache.Operations do
   def touch(cache, key) do
     set_ttl(cache, key, :renew)
   end
-
-  def size(%ConCache{ets: ets}) do
-    :ets.info(ets, :size)
-  end
-
-  def memory(%ConCache{ets: ets}) do
-    :ets.info(ets, :memory)
-  end
-
-  def memory_bytes(cache), do: :erlang.system_info(:wordsize) * memory(cache)
 end

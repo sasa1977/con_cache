@@ -50,20 +50,8 @@ defmodule ConCache do
   @spec ets(t) :: :ets.tab
   defcacheop ets(cache)
 
-  @spec size(t) :: pos_integer
-  defcacheop size(cache)
-
-  @spec memory(t) :: pos_integer
-  defcacheop memory(cache)
-
-  @spec memory_bytes(t) :: pos_integer
-  defcacheop memory_bytes(cache)
-
   @spec get(t, key) :: value
   defcacheop get(cache, key)
-
-  @spec get_all(t) :: [{key, value}]
-  defcacheop get_all(cache)
 
   @spec put(t, key, value) :: :ok
   defcacheop put(cache, key, value)
@@ -100,9 +88,6 @@ defmodule ConCache do
 
   @spec dirty_get_or_store(t, key, store_fun) :: value
   defcacheop dirty_get_or_store(cache, key, store_fun)
-
-  @spec with_existing(t, key, ((value) -> any)) :: any
-  defcacheop with_existing(cache, key, fun)
 
   @spec touch(t, key) :: :ok
   defcacheop touch(cache, key)

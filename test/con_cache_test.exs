@@ -22,9 +22,6 @@ defmodule ConCacheTest do
 
   test "initial" do
     with_cache(fn(cache) ->
-      assert ConCache.size(cache) == 0
-      assert ConCache.memory(cache) > 0
-      assert ConCache.memory_bytes(cache) > 0
       assert ConCache.get(cache, :a) == nil
     end)
   end
@@ -33,7 +30,6 @@ defmodule ConCacheTest do
     with_cache(fn(cache) ->
       assert ConCache.put(cache, :a, 1) == :ok
       assert ConCache.get(cache, :a) == 1
-      assert ConCache.size(cache) == 1
     end)
   end
 
@@ -51,14 +47,6 @@ defmodule ConCacheTest do
       ConCache.put(cache, :a, 1)
       assert ConCache.delete(cache, :a) == :ok
       assert ConCache.get(cache, :a) == nil
-    end)
-  end
-
-  test "with_existing" do
-    with_cache(fn(cache) ->
-      ConCache.put(cache, :a, 1)
-      assert ConCache.with_existing(cache, :a, &({:ok, &1})) == {:ok, 1}
-      assert ConCache.with_existing(cache, :b, &({:ok, &1})) == nil
     end)
   end
 
@@ -86,14 +74,6 @@ defmodule ConCacheTest do
       assert ConCache.get_or_store(cache, :a, fn() -> 1 end) == 1
       assert ConCache.get_or_store(cache, :a, fn() -> 2 end) == 1
       assert ConCache.get_or_store(cache, :b, fn() -> 4 end) == 4
-    end)
-  end
-
-  test "get_all" do
-    with_cache(fn(cache) ->
-      ConCache.put(cache, :a, 1)
-      ConCache.put(cache, :b, 2)
-      assert (ConCache.get_all(cache) |> Enum.sort) == [a: 1, b: 2]
     end)
   end
 
