@@ -68,8 +68,7 @@ defmodule ConCache do
     {:ets_options, [ets_option]}
   ]
 
-  @type cancel_reason :: any
-  @type update_fun :: ((value) -> store_value | {:cancel_update, cancel_reason})
+  @type update_fun :: ((value) -> {:ok, store_value} | {:error, any})
 
   @type store_fun :: (() -> store_value)
 
@@ -178,31 +177,33 @@ defmodule ConCache do
   that no other process will update this item, unless they are doing dirty updates
   or writing directly to the underlying ETS table.
 
-  The result of the updated lambda is stored into the table, unless it is in form of
-  `{:cancel_update, cancel_reason}`.
+  The updater lambda must return one of the following:
+
+    - `{:ok, value}` - causes the value to be stored into the table
+
   """
-  @spec update(t, key, update_fun) :: :ok | cancel_reason
+  @spec update(t, key, update_fun) :: :ok | {:error, any}
   def update(cache_id, key, update_fun),
     do: Operations.update(Owner.cache(cache_id), key, update_fun)
 
   @doc """
   Dirty equivalent of `update/3`.
   """
-  @spec dirty_update(t, key, update_fun) :: :ok | cancel_reason
+  @spec dirty_update(t, key, update_fun) :: :ok | {:error, any}
   def dirty_update(cache_id, key, update_fun),
     do: Operations.dirty_update(Owner.cache(cache_id), key, update_fun)
 
   @doc """
   Updates the item only if it exists. Otherwise works just like `update/3`.
   """
-  @spec update_existing(t, key, update_fun) :: :ok | {:error, :not_existing} | cancel_reason
+  @spec update_existing(t, key, update_fun) :: :ok | {:error, :not_existing} | {:error, any}
   def update_existing(cache_id, key, update_fun),
     do: Operations.update_existing(Owner.cache(cache_id), key, update_fun)
 
   @doc """
   Dirty equivalent of `update_existing/3`.
   """
-  @spec dirty_update_existing(t, key, update_fun) :: :ok | {:error, :not_existing} | cancel_reason
+  @spec dirty_update_existing(t, key, update_fun) :: :ok | {:error, :not_existing} | {:error, any}
   def dirty_update_existing(cache_id, key, update_fun),
     do: Operations.dirty_update_existing(Owner.cache(cache_id), key, update_fun)
 

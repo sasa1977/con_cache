@@ -46,8 +46,8 @@ defmodule ConCache.Operations do
     dirty_update(cache, key, &do_insert_new(value, &1))
   end
 
-  defp do_insert_new(value, nil), do: value
-  defp do_insert_new(_, _), do: {:cancel_update, {:error, :already_exists}}
+  defp do_insert_new(value, nil), do: {:ok, value}
+  defp do_insert_new(_, _), do: {:error, :already_exists}
 
   def update(cache, key, fun) do
     isolated(cache, key, fn() ->
@@ -71,16 +71,14 @@ defmodule ConCache.Operations do
     end) || {:error, :not_existing}
   end
 
-  defp do_update(_, _, {:cancel_update, return_value}) do
-    return_value
-  end
+  defp do_update(_, _, {:error, _} = error), do: error
 
-  defp do_update(cache, key, %ConCache.Item{} = new_value) do
+  defp do_update(cache, key, {:ok, %ConCache.Item{} = new_value}) do
     dirty_put(cache, key, new_value)
   end
 
-  defp do_update(cache, key, new_value) do
-    do_update(cache, key, %ConCache.Item{value: new_value, ttl: :renew})
+  defp do_update(cache, key, {:ok, new_value}) do
+    dirty_put(cache, key, %ConCache.Item{value: new_value, ttl: :renew})
   end
 
   def dirty_put(
