@@ -273,7 +273,7 @@ defmodule ConCache do
   If the lock can be acquired immediately, it will be acquired and the function
   will be invoked. Otherwise, an error is returned immediately.
   """
-  @spec try_isolated(t, key, nil | pos_integer, (() -> any)) :: {:error, :locked} | any
+  @spec try_isolated(t, key, nil | pos_integer, (() -> any)) :: {:error, :locked} | {:ok, any}
   def try_isolated(cache_id, key, timeout \\ nil, on_success),
     do: Operations.try_isolated(Owner.cache(cache_id), key, timeout, on_success)
 end

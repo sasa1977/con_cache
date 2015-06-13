@@ -203,7 +203,7 @@ defmodule ConCacheTest do
       assert ConCache.try_isolated(cache, :a, fn() -> flunk "error" end) == {:error, :locked}
 
       :timer.sleep(100)
-      assert ConCache.try_isolated(cache, :a, fn() -> :isolated end) == :isolated
+      assert ConCache.try_isolated(cache, :a, fn() -> :isolated end) == {:ok, :isolated}
     end)
   end
 

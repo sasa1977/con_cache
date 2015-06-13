@@ -9,7 +9,7 @@ defmodule ConCache.Operations do
   def try_isolated(cache, key, timeout \\ nil, on_success) do
     case ConCache.BalancedLock.try_exec(cache_key(cache, key), timeout || cache.acquire_lock_timeout, on_success) do
       {:lock, :not_acquired} -> {:error, :locked}
-      response -> response
+      response -> {:ok, response}
     end
   end
 
