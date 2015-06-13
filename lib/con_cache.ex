@@ -38,7 +38,8 @@ defmodule ConCache do
   See `start_link/2` for more details.
   """
 
-  import ConCache.Helper
+  alias ConCache.Owner
+  alias ConCache.Operations
 
   defstruct [
     :owner_pid, :ets, :ttl_manager, :ttl, :acquire_lock_timeout, :callback, :touch_on_read
@@ -113,7 +114,7 @@ defmodule ConCache do
   """
   @spec start_link(options, GenServer.options) :: GenServer.on_start
   def start_link(options \\ [], gen_server_options \\ []) do
-    ConCache.Owner.start_link(options, gen_server_options)
+    Owner.start_link(options, gen_server_options)
   end
 
   @doc """
@@ -123,14 +124,14 @@ defmodule ConCache do
   """
   @spec start(options, GenServer.options) :: GenServer.on_start
   def start(options \\ [], gen_server_options \\ []) do
-    ConCache.Owner.start(options, gen_server_options)
+    Owner.start(options, gen_server_options)
   end
 
   @doc """
   Returns the ets table managed by the cache.
   """
   @spec ets(t) :: :ets.tab
-  defcacheop ets(cache)
+  def ets(cache_id), do: Operations.ets(Owner.cache(cache_id))
 
   @doc """
   Reads the item from the cache.
@@ -140,31 +141,35 @@ defmodule ConCache do
   `touch_on_read` option is set while starting the cache.
   """
   @spec get(t, key) :: value
-  defcacheop get(cache, key)
+  def get(cache_id, key), do: Operations.get(Owner.cache(cache_id), key)
 
   @doc """
   Stores the item into the cache.
   """
   @spec put(t, key, store_value) :: :ok
-  defcacheop put(cache, key, value)
+  def put(cache_id, key, value),
+    do: Operations.put(Owner.cache(cache_id), key, value)
 
   @doc """
   Dirty equivalent of `put/3`.
   """
   @spec dirty_put(t, key, store_value) :: :ok
-  defcacheop dirty_put(cache, key, value)
+  def dirty_put(cache_id, key, value),
+    do: Operations.dirty_put(Owner.cache(cache_id), key, value)
 
   @doc """
   Inserts the item into the cache unless it exists.
   """
   @spec insert_new(t, key, store_value) :: :ok | {:error, :already_exists}
-  defcacheop insert_new(cache, key, value)
+  def insert_new(cache_id, key, value),
+    do: Operations.insert_new(Owner.cache(cache_id), key, value)
 
   @doc """
   Dirty equivalent of `insert_new/3`.
   """
   @spec dirty_insert_new(t, key, store_value) :: :ok | {:error, :already_exists}
-  defcacheop dirty_insert_new(cache, key, value)
+  def dirty_insert_new(cache_id, key, value),
+    do: Operations.insert_new(Owner.cache(cache_id), key, value)
 
   @doc """
   Updates the item, or stores new item if it doesn't exist.
@@ -177,37 +182,41 @@ defmodule ConCache do
   `{:cancel_update, cancel_reason}`.
   """
   @spec update(t, key, update_fun) :: :ok | cancel_reason
-  defcacheop update(cache, key, update_fun)
+  def update(cache_id, key, update_fun),
+    do: Operations.update(Owner.cache(cache_id), key, update_fun)
 
   @doc """
   Dirty equivalent of `update/3`.
   """
   @spec dirty_update(t, key, update_fun) :: :ok | cancel_reason
-  defcacheop dirty_update(cache, key, update_fun)
+  def dirty_update(cache_id, key, update_fun),
+    do: Operations.dirty_update(Owner.cache(cache_id), key, update_fun)
 
   @doc """
   Updates the item only if it exists. Otherwise works just like `update/3`.
   """
   @spec update_existing(t, key, update_fun) :: :ok | {:error, :not_existing} | cancel_reason
-  defcacheop update_existing(cache, key, update_fun)
+  def update_existing(cache_id, key, update_fun),
+    do: Operations.update_existing(Owner.cache(cache_id), key, update_fun)
 
   @doc """
   Dirty equivalent of `update_existing/3`.
   """
   @spec dirty_update_existing(t, key, update_fun) :: :ok | {:error, :not_existing} | cancel_reason
-  defcacheop dirty_update_existing(cache, key, update_fun)
+  def dirty_update_existing(cache_id, key, update_fun),
+    do: Operations.dirty_update_existing(Owner.cache(cache_id), key, update_fun)
 
   @doc """
   Deletes the item from the cache.
   """
   @spec delete(t, key) :: :ok
-  defcacheop delete(cache, key)
+  def delete(cache_id, key), do: Operations.delete(Owner.cache(cache_id), key)
 
   @doc """
   Dirty equivalent of `delete/2`.
   """
   @spec dirty_delete(t, key) :: :ok
-  defcacheop dirty_delete(cache, key)
+  def dirty_delete(cache_id, key), do: Operations.dirty_delete(Owner.cache(cache_id), key)
 
   @doc """
   Retrieves the item from the cache, or inserts the new item.
@@ -219,19 +228,21 @@ defmodule ConCache do
   without any locking, so you can expect it to be fairly fast.
   """
   @spec get_or_store(t, key, store_fun) :: value
-  defcacheop get_or_store(cache, key, store_fun)
+  def get_or_store(cache_id, key, store_fun),
+    do: Operations.get_or_store(Owner.cache(cache_id), key, store_fun)
 
   @doc """
   Dirty equivalent of `get_or_store/3`.
   """
   @spec dirty_get_or_store(t, key, store_fun) :: value
-  defcacheop dirty_get_or_store(cache, key, store_fun)
+  def dirty_get_or_store(cache_id, key, store_fun),
+    do: Operations.dirty_get_or_store(Owner.cache(cache_id), key, store_fun)
 
   @doc """
   Manually touches the item to prolongate its expiry.
   """
   @spec touch(t, key) :: :ok
-  defcacheop touch(cache, key)
+  def touch(cache_id, key), do: Operations.touch(Owner.cache(cache_id), key)
 
   @doc """
   Isolated execution over arbitrary lock in the cache.
@@ -252,7 +263,8 @@ defmodule ConCache do
   These two operations are mutually exclusive.
   """
   @spec isolated(t, key, nil | pos_integer, (() -> any)) :: any
-  defcacheop isolated(cache, key, timeout \\ nil, fun)
+  def isolated(cache_id, key, timeout \\ nil, fun),
+    do: Operations.isolated(Owner.cache(cache_id), key, timeout, fun)
 
   @doc """
   Similar to `isolated/4` except it doesn't wait for the lock to be available.
@@ -261,5 +273,6 @@ defmodule ConCache do
   will be invoked. Otherwise, an error is returned immediately.
   """
   @spec try_isolated(t, key, nil | pos_integer, (() -> any)) :: {:error, :locked} | any
-  defcacheop try_isolated(cache, key, timeout \\ nil, on_success)
+  def try_isolated(cache_id, key, timeout \\ nil, on_success),
+    do: Operations.try_isolated(Owner.cache(cache_id), key, timeout, on_success)
 end
