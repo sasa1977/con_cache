@@ -1,3 +1,15 @@
+# v0.8.0
+
+## Breaking changes
+- Removed following `ConCache` functions: `size/1`, `memory/1`, `memory_bytes/1`, `get_all/1`, `with_existing/3`
+- Changed `ConCache` update functions: `update/3`, `dirty_update/3`, `update_existing/3` and `dirty_update_existing/3`. The provided lambda now must return either `{:ok, new_value}` or `{:error, reason}`.
+- Changed `ConCache.try_isolated/4` - the function returns `{:ok, result}` or `{:error, reason}`
+- Upgraded to the most recent ExActor
+
+## Fixes
+- Fixed possible race-conditions on client process crash
+- Fixed mutual exclusion of independent caches
+
 # v0.6.0
 - Elixir v1.0.0
 

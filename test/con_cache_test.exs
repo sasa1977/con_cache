@@ -22,9 +22,6 @@ defmodule ConCacheTest do
 
   test "initial" do
     with_cache(fn(cache) ->
-      assert ConCache.size(cache) == 0
-      assert ConCache.memory(cache) > 0
-      assert ConCache.memory_bytes(cache) > 0
       assert ConCache.get(cache, :a) == nil
     end)
   end
@@ -33,7 +30,6 @@ defmodule ConCacheTest do
     with_cache(fn(cache) ->
       assert ConCache.put(cache, :a, 1) == :ok
       assert ConCache.get(cache, :a) == 1
-      assert ConCache.size(cache) == 1
     end)
   end
 
@@ -54,29 +50,21 @@ defmodule ConCacheTest do
     end)
   end
 
-  test "with_existing" do
-    with_cache(fn(cache) ->
-      ConCache.put(cache, :a, 1)
-      assert ConCache.with_existing(cache, :a, &({:ok, &1})) == {:ok, 1}
-      assert ConCache.with_existing(cache, :b, &({:ok, &1})) == nil
-    end)
-  end
-
   test "update" do
     with_cache(fn(cache) ->
       ConCache.put(cache, :a, 1)
-      assert ConCache.update(cache, :a, &(&1 + 1)) == :ok
+      assert ConCache.update(cache, :a, &({:ok, &1 + 1})) == :ok
       assert ConCache.get(cache, :a) == 2
 
-      assert ConCache.update(cache, :a, fn(_) -> {:cancel_update, false} end) == false
+      assert ConCache.update(cache, :a, fn(_) -> {:error, false} end) == {:error, false}
     end)
   end
 
   test "update_existing" do
     with_cache(fn(cache) ->
-      assert ConCache.update_existing(cache, :a, &(&1 + 1)) == {:error, :not_existing}
+      assert ConCache.update_existing(cache, :a, &({:ok, &1 + 1})) == {:error, :not_existing}
       ConCache.put(cache, :a, 1)
-      assert ConCache.update_existing(cache, :a, &(&1 + 1)) == :ok
+      assert ConCache.update_existing(cache, :a, &({:ok, &1 + 1})) == :ok
       assert ConCache.get(cache, :a) == 2
     end)
   end
@@ -86,14 +74,6 @@ defmodule ConCacheTest do
       assert ConCache.get_or_store(cache, :a, fn() -> 1 end) == 1
       assert ConCache.get_or_store(cache, :a, fn() -> 2 end) == 1
       assert ConCache.get_or_store(cache, :b, fn() -> 4 end) == 4
-    end)
-  end
-
-  test "get_all" do
-    with_cache(fn(cache) ->
-      ConCache.put(cache, :a, 1)
-      ConCache.put(cache, :b, 2)
-      assert (ConCache.get_all(cache) |> Enum.sort) == [a: 1, b: 2]
     end)
   end
 
@@ -109,13 +89,13 @@ defmodule ConCacheTest do
       assert ConCache.dirty_delete(cache, :b) == :ok
       assert ConCache.get(cache, :b) == nil
 
-      assert ConCache.dirty_update(cache, :a, &(&1 + 1)) == :ok
+      assert ConCache.dirty_update(cache, :a, &({:ok, &1 + 1})) == :ok
       assert ConCache.get(cache, :a) == 2
 
-      assert ConCache.dirty_update_existing(cache, :a, &(&1 + 1)) == :ok
+      assert ConCache.dirty_update_existing(cache, :a, &({:ok, &1 + 1})) == :ok
       assert ConCache.get(cache, :a) == 3
 
-      assert ConCache.dirty_update_existing(cache, :b, &(&1 + 1)) == {:error, :not_existing}
+      assert ConCache.dirty_update_existing(cache, :b, &({:ok, &1 + 1})) == {:error, :not_existing}
       assert ConCache.get(cache, :b) == nil
 
       assert ConCache.dirty_get_or_store(cache, :a, fn() -> :dummy end) == 3
@@ -142,10 +122,10 @@ defmodule ConCacheTest do
         ConCache.put(cache, :a, 1)
         assert_receive {:update, ^cache, :a, 1}
 
-        ConCache.update(cache, :a, fn(_) -> 2 end)
+        ConCache.update(cache, :a, fn(_) -> {:ok, 2} end)
         assert_receive {:update, ^cache, :a, 2}
 
-        ConCache.update_existing(cache, :a, fn(_) -> 3 end)
+        ConCache.update_existing(cache, :a, fn(_) -> {:ok, 3} end)
         assert_receive {:update, ^cache, :a, 3}
 
         ConCache.delete(cache, :a)
@@ -166,8 +146,8 @@ defmodule ConCacheTest do
           assert ConCache.get(cache, :a) == nil
 
           test_renew_ttl(cache, fn() -> ConCache.put(cache, :a, 1) end)
-          test_renew_ttl(cache, fn() -> ConCache.update(cache, :a, &(&1 + 1)) end)
-          test_renew_ttl(cache, fn() -> ConCache.update_existing(cache, :a, &(&1 + 1)) end)
+          test_renew_ttl(cache, fn() -> ConCache.update(cache, :a, &({:ok, &1 + 1})) end)
+          test_renew_ttl(cache, fn() -> ConCache.update_existing(cache, :a, &({:ok, &1 + 1})) end)
           test_renew_ttl(cache, fn() -> ConCache.touch(cache, :a) end)
 
           ConCache.put(cache, :a, %ConCache.Item{value: 1, ttl: 20})
@@ -207,7 +187,7 @@ defmodule ConCacheTest do
         assert ConCache.get(cache, :a) == 1
         :timer.sleep(40)
         assert ConCache.get(cache, :a) == 1
-        :timer.sleep(70)
+        :timer.sleep(100)
         assert ConCache.get(cache, :a) == nil
       end
     )
@@ -223,7 +203,7 @@ defmodule ConCacheTest do
       assert ConCache.try_isolated(cache, :a, fn() -> flunk "error" end) == {:error, :locked}
 
       :timer.sleep(100)
-      assert ConCache.try_isolated(cache, :a, fn() -> :isolated end) == :isolated
+      assert ConCache.try_isolated(cache, :a, fn() -> :isolated end) == {:ok, :isolated}
     end)
   end
 
@@ -249,6 +229,10 @@ defmodule ConCacheTest do
       assert ConCache.get(cache1, :b) == nil
       assert ConCache.get(cache2, :a) == nil
       assert ConCache.get(cache2, :b) == 2
+
+      spawn(fn -> ConCache.isolated(cache1, :a, fn -> :timer.sleep(:infinity) end) end)
+      assert ConCache.isolated(cache2, :a, fn -> :foo end) == :foo
+      assert {:timeout, _} = catch_exit(ConCache.isolated(cache1, :a, 50, fn -> :bar end))
     end)
   end
 

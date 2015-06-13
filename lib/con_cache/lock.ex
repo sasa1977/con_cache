@@ -1,13 +1,14 @@
 defmodule ConCache.Lock do
   @moduledoc false
-  require Record
+
+  alias ConCache.Lock.Resource
+  alias ConCache.Lock.Monitors
 
   @type key :: any
   @type result :: any
   @type job :: (() -> result)
 
-  Record.defrecordp :item, pending: :gb_trees.empty, locked: nil
-  defstruct items: HashDict.new
+  defstruct resources: HashDict.new, monitors: Monitors.new
 
   use ExActor.Tolerant
 
@@ -24,141 +25,124 @@ defmodule ConCache.Lock do
   @spec exec(pid | atom, key, timeout, job) :: result
   @spec exec(pid | atom, key, job) :: result
   def exec(server, id, timeout \\ 5000, fun) do
-    lock(server, self, id)
-    try do
-      wait_for_lock(server, id, timeout, fun)
-    after
-      unlock(server, self, id)
-    end
-  end
-
-  defp wait_for_lock(server, id, timeout, fun) do
-    receive do
-      {:lock, ^id, ^server, :acquired} -> fun.()
-    after timeout ->
-      throw(:timeout)
-    end
+    :acquired = lock(server, id, timeout)
+    exec_fun(server, id, fun)
   end
 
   @spec try_exec(pid | atom, key, job) :: result | {:lock, :not_acquired}
   @spec try_exec(pid | atom, key, timeout, job) :: result | {:lock, :not_acquired}
   def try_exec(server, id, timeout \\ 5000, fun) do
-    try_lock(server, self, id)
-    try_wait_for_lock(server, id, timeout, fun)
+    case try_lock(server, id, timeout) do
+      :acquired -> exec_fun(server, id, fun)
+      :not_acquired -> {:lock, :not_acquired}
+    end
   end
 
-  defp try_wait_for_lock(server, id, timeout, fun) do
+  defp exec_fun(server, id, fun) do
     try do
-      receive do
-        {:lock, ^id, ^server, :acquired} -> fun.()
-        {:lock, ^id, ^server, :not_acquired} -> {:lock, :not_acquired}
-      after timeout ->
-        {:lock, :not_acquired}
-      end
+      fun.()
     after
-      unlock(server, self, id)
+      unlock(server, id, self)
     end
   end
 
-  defcast lock(caller, id), state: state do
-    do_lock(state, caller, id)
-    |> new_state
+
+  defcallp try_lock(id), from: {caller_pid, _} = from, state: state, timeout: timeout do
+    resource = resource(state, id)
+    if Resource.can_lock?(resource, caller_pid) do
+      add_resource_owner(state, id, resource, from)
+    else
+      reply(:not_acquired)
+    end
   end
 
-  defp do_lock(state, caller, id) do
+  defcallp lock(id), from: from, state: state, timeout: timeout do
+    add_resource_owner(state, id, resource(state, id), from)
+  end
+
+  defp add_resource_owner(state, id, resource, {caller_pid, _} = from) do
     state
-    |> register_to_item(caller, id)
-  end
-
-  defcast try_lock(caller, id), state: state do
-    can_lock?(state, caller, id)
-    |> maybe_lock(state, caller, id)
+    |> inc_monitor_ref(caller_pid)
+    |> handle_resource_change(id, Resource.inc_lock(resource, caller_pid, from))
     |> new_state
   end
 
-  defp maybe_lock(true, state, caller, id), do: do_lock(state, caller, id)
-  defp maybe_lock(false, state, caller, id) do
-    send(caller, {:lock, id, self, :not_acquired})
+
+  defcast unlock(id, caller_pid), state: state do
     state
-  end
-
-  defp can_lock?(%__MODULE__{items: items}, caller, id) do
-    can_lock?(caller, items[id] || item())
-  end
-
-  defp can_lock?(_, item(locked: nil)), do: true
-  defp can_lock?(caller, item(locked: {caller, _})), do: true
-  defp can_lock?(_, _), do: false
-
-  defp register_to_item(%__MODULE__{items: items} = state, caller, id) do
-    add_process_to_item(caller, id, items[id] || item())
-    |> store_item(id, state)
-  end
-
-  defp add_process_to_item(caller, id, item(locked: nil) = item) do
-    send(caller, {:lock, id, self, :acquired})
-    item(item, locked: {caller, 1})
-  end
-
-  defp add_process_to_item(caller, id, item(locked: {caller, count}) = item) do
-    send(caller, {:lock, id, self, :acquired})
-    item(item, locked: {caller, count + 1})
-  end
-
-  defp add_process_to_item(caller, _, item(locked: {locked, _}, pending: pending) = item)  when is_pid(locked) do
-    key = case :gb_trees.size(pending) do
-      0 -> 1
-      _ -> (:gb_trees.largest(pending) |> elem(0)) + 1
-    end
-
-    item(item, pending: :gb_trees.insert(key, caller, pending))
-  end
-
-  defp store_item(item(locked: locked, pending: pending) = item, id, %__MODULE__{items: items} = state) do
-    case locked == nil and :gb_trees.size(pending) do
-      0 -> %__MODULE__{state | items: Dict.delete(items, id)}
-      _ -> %__MODULE__{state | items: Dict.put(items, id, item)}
-    end
-  end
-
-  defcast unlock(caller, id), state: %__MODULE__{items: items} = state do
-    remove_process_from_item(state, caller, id, items[id])
+    |> dec_monitor_ref(caller_pid)
+    |> handle_resource_change(id, Resource.dec_lock(resource(state, id), caller_pid))
     |> new_state
   end
 
-  defp remove_process_from_item(
-    state, caller, {:force, id}, item(locked: {caller, _}) = item
-  ) do
-    remove_process_from_item(state, caller, id, item(item, locked: {caller, 1}))
+
+  defp handle_resource_change(state, id, resource_change_result) do
+    resource = maybe_notify_caller(resource_change_result)
+    store_resource(state, id, resource)
   end
 
-  defp remove_process_from_item(state, caller, {:force, id}, item) do
-    remove_process_from_item(state, caller, id, item)
-  end
-
-  defp remove_process_from_item(
-    state, caller, id, item(pending: pending, locked: {caller, 1}) = item
-  ) do
-    case :gb_trees.size(pending) do
-      0 -> item(item, locked: nil)
-      _ ->
-        {_, next, remaining} = :gb_trees.take_smallest(pending)
-        add_process_to_item(next, id, item(item, locked: nil, pending: remaining))
+  defp maybe_notify_caller({:not_acquired, resource}), do: resource
+  defp maybe_notify_caller({{:acquired, from}, resource}) do
+    if Process.alive?(Resource.owner(resource)) do
+      GenServer.reply(from, :acquired)
+      resource
+    else
+      remove_caller_from_resource(resource, Resource.owner(resource))
     end
-    |> store_item(id, state)
   end
 
-  defp remove_process_from_item(state, caller, id, item(locked: {caller, count}) = item) do
-    item(item, locked: {caller, count - 1})
-    |> store_item(id, state)
+  defp remove_caller_from_resource(resource, caller_pid) do
+    resource
+    |> Resource.remove_caller(caller_pid)
+    |> maybe_notify_caller
   end
 
-  defp remove_process_from_item(state, caller, id, item(pending: pending) = item) do
-    item(item,
-      pending:
-        Enum.filter(:gb_trees.to_list(pending), &(&1 != caller))
-        |> :gb_trees.from_orddict
+  defp remove_caller_from_all_resources(%__MODULE__{resources: resources} = state, caller_pid) do
+    Enum.reduce(resources, state,
+      fn({id, resource}, state_acc) ->
+        store_resource(
+          state_acc,
+          id,
+          remove_caller_from_resource(resource, caller_pid)
+        )
+      end
     )
-    |> store_item(id, state)
   end
+
+  defp resource(%__MODULE__{resources: resources}, id) do
+    case HashDict.fetch(resources, id) do
+      {:ok, resource} -> resource
+      :error -> Resource.new
+    end
+  end
+
+  defp store_resource(%__MODULE__{resources: resources} = state, id, resource) do
+    if Resource.empty?(resource) do
+      %__MODULE__{state | resources: HashDict.delete(resources, id)}
+    else
+      %__MODULE__{state | resources: HashDict.put(resources, id, resource)}
+    end
+  end
+
+
+  defp inc_monitor_ref(%__MODULE__{monitors: monitors} = state, caller_pid) do
+    %__MODULE__{state | monitors: Monitors.inc_ref(monitors, caller_pid)}
+  end
+
+  defp dec_monitor_ref(%__MODULE__{monitors: monitors} = state, caller_pid) do
+    %__MODULE__{state | monitors: Monitors.dec_ref(monitors, caller_pid)}
+  end
+
+  defp unmonitor(%__MODULE__{monitors: monitors} = state, caller_pid) do
+    %__MODULE__{state | monitors: Monitors.remove(monitors, caller_pid)}
+  end
+
+  defhandleinfo {:DOWN, _, _, caller_pid, _}, state: state do
+    state
+    |> unmonitor(caller_pid)
+    |> remove_caller_from_all_resources(caller_pid)
+    |> new_state
+  end
+
+  defhandleinfo _, do: noreply
 end

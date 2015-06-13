@@ -3,14 +3,18 @@ defmodule ConCache.Operations do
   def ets(%ConCache{ets: ets}), do: ets
 
   def isolated(cache, key, timeout \\ nil, fun) do
-    ConCache.BalancedLock.exec(key, timeout || cache.acquire_lock_timeout, fun)
+    ConCache.BalancedLock.exec(cache_key(cache, key), timeout || cache.acquire_lock_timeout, fun)
   end
 
   def try_isolated(cache, key, timeout \\ nil, on_success) do
-    case ConCache.BalancedLock.try_exec(key, timeout || cache.acquire_lock_timeout, on_success) do
+    case ConCache.BalancedLock.try_exec(cache_key(cache, key), timeout || cache.acquire_lock_timeout, on_success) do
       {:lock, :not_acquired} -> {:error, :locked}
-      response -> response
+      response -> {:ok, response}
     end
+  end
+
+  defp cache_key(%ConCache{owner_pid: pid}, key) do
+    {pid, key}
   end
 
   def get(%ConCache{ets: ets} = cache, key) do
@@ -25,10 +29,6 @@ defmodule ConCache.Operations do
   defp read_touch(%ConCache{touch_on_read: false}, _), do: :ok
   defp read_touch(%ConCache{touch_on_read: true} = cache, key) do
     touch(cache, key)
-  end
-
-  def get_all(%ConCache{ets: ets}) do
-    :ets.tab2list(ets)
   end
 
   def put(cache, key, value) do
@@ -46,8 +46,8 @@ defmodule ConCache.Operations do
     dirty_update(cache, key, &do_insert_new(value, &1))
   end
 
-  defp do_insert_new(value, nil), do: value
-  defp do_insert_new(_, _), do: {:cancel_update, {:error, :already_exists}}
+  defp do_insert_new(value, nil), do: {:ok, value}
+  defp do_insert_new(_, _), do: {:error, :already_exists}
 
   def update(cache, key, fun) do
     isolated(cache, key, fn() ->
@@ -71,16 +71,14 @@ defmodule ConCache.Operations do
     end) || {:error, :not_existing}
   end
 
-  defp do_update(_, _, {:cancel_update, return_value}) do
-    return_value
-  end
+  defp do_update(_, _, {:error, _} = error), do: error
 
-  defp do_update(cache, key, %ConCache.Item{} = new_value) do
+  defp do_update(cache, key, {:ok, %ConCache.Item{} = new_value}) do
     dirty_put(cache, key, new_value)
   end
 
-  defp do_update(cache, key, new_value) do
-    do_update(cache, key, %ConCache.Item{value: new_value, ttl: :renew})
+  defp do_update(cache, key, {:ok, new_value}) do
+    dirty_put(cache, key, %ConCache.Item{value: new_value, ttl: :renew})
   end
 
   def dirty_put(
@@ -160,7 +158,7 @@ defmodule ConCache.Operations do
     :ok
   end
 
-  def with_existing(cache, key, fun) do
+  defp with_existing(cache, key, fun) do
     case get(cache, key) do
       nil -> nil
       existing -> fun.(existing)
@@ -170,14 +168,4 @@ defmodule ConCache.Operations do
   def touch(cache, key) do
     set_ttl(cache, key, :renew)
   end
-
-  def size(%ConCache{ets: ets}) do
-    :ets.info(ets, :size)
-  end
-
-  def memory(%ConCache{ets: ets}) do
-    :ets.info(ets, :memory)
-  end
-
-  def memory_bytes(cache), do: :erlang.system_info(:wordsize) * memory(cache)
 end
