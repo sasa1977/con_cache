@@ -181,6 +181,34 @@ ConCache.start_link([], name: {:via, :gproc, :my_cache})
 ConCache.put({:via, :gproc, :my_cache}, :some_key, :some_value)
 ```
 
+## Testing in your application
+
+Keep in mind that `ConCache` introduces a state to your system. Thus, when you're testing your application, some tests might accidentally compromise the execution of other tests. There are a couple of options to work around that:
+
+1. Use different keys in each test. This could help avoiding tests compromising each other.
+
+2. Before each test, force restart the `ConCache` process. This will ensure each test runs with the empty cache.
+```elixir
+setup do
+  Supervisor.terminate_child(con_cache_supervisor, ConCache)
+  Supervisor.restart_child(con_cache_supervisor, ConCache)
+  :ok
+end
+```
+Where `con_cache_supervisor` is the supervisor from which the `ConCache` process is started.
+
+3. Fetch all keys from the `ets` table, and delete each entry:
+```elixir
+setup do
+  :my_cache
+  |> ConCache.ets
+  |> :ets.tab2list
+  |> Enum.each(fn({key, _}) -> ConCache.delete(:my_cache, key) end)
+
+  :ok
+end
+```
+
 ## Inner workings
 
 ### ETS table
