@@ -1,7 +1,13 @@
 defmodule ConCache.Lock.Resource do
   @moduledoc false
 
-  defstruct owner: nil, count: 0, pending_owners: :queue.new, pending_values: HashDict.new
+  defstruct(
+    owner: nil,
+    count: 0,
+    pending_owners: :queue.new,
+    pending_values: HashDict.new,
+    lock_instances: HashSet.new
+  )
 
   def new, do: %__MODULE__{}
 
@@ -16,18 +22,28 @@ defmodule ConCache.Lock.Resource do
   def can_lock?(%__MODULE__{owner: pid}, pid), do: true
   def can_lock?(resource, _), do: empty?(resource)
 
-  def inc_lock(%__MODULE__{owner: pid, count: count} = resource, pid, value) do
-    {{:acquired, value}, %__MODULE__{resource | count: count + 1}}
+  def inc_lock(
+    %__MODULE__{owner: pid, count: count, lock_instances: lock_instances} = resource,
+    lock_instance,
+    pid,
+    value
+  ) do
+    {
+      {:acquired, value},
+      %__MODULE__{resource | count: count + 1, lock_instances: HashSet.put(lock_instances, lock_instance)}
+    }
   end
 
   def inc_lock(
-    %__MODULE__{pending_owners: pending_owners, pending_values: pending_values} = resource,
+    %__MODULE__{pending_owners: pending_owners, pending_values: pending_values, lock_instances: lock_instances} = resource,
+    lock_instance,
     pid,
     value
   ) do
     acquire_next(%__MODULE__{resource |
       pending_owners: :queue.in(pid, pending_owners),
-      pending_values: HashDict.put(pending_values, pid, value)
+      pending_values: HashDict.put(pending_values, pid, value),
+      lock_instances: HashSet.put(lock_instances, lock_instance)
     })
   end
 
@@ -56,11 +72,15 @@ defmodule ConCache.Lock.Resource do
   end
 
 
-  def dec_lock(resource, pid) do
-    resource
-    |> dec_owner_lock(pid)
-    |> release_pending(pid)
-    |> acquire_next
+  def dec_lock(%__MODULE__{lock_instances: lock_instances} = resource, lock_instance, pid) do
+    if HashSet.member?(lock_instances, lock_instance) do
+      %{resource | lock_instances: HashSet.delete(lock_instances, lock_instance)}
+      |> dec_owner_lock(pid)
+      |> release_pending(pid)
+      |> acquire_next
+    else
+      {:not_acquired, resource}
+    end
   end
 
 

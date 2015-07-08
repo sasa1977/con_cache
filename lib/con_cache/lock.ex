@@ -25,53 +25,54 @@ defmodule ConCache.Lock do
   @spec exec(pid | atom, key, timeout, job) :: result
   @spec exec(pid | atom, key, job) :: result
   def exec(server, id, timeout \\ 5000, fun) do
-    :acquired = lock(server, id, timeout)
-    exec_fun(server, id, fun)
+    lock_instance = make_ref
+    try do
+      :acquired = lock(server, id, lock_instance, timeout)
+      fun.()
+    after
+      unlock(server, id, lock_instance, self)
+    end
   end
 
   @spec try_exec(pid | atom, key, job) :: result | {:lock, :not_acquired}
   @spec try_exec(pid | atom, key, timeout, job) :: result | {:lock, :not_acquired}
   def try_exec(server, id, timeout \\ 5000, fun) do
-    case try_lock(server, id, timeout) do
-      :acquired -> exec_fun(server, id, fun)
-      :not_acquired -> {:lock, :not_acquired}
-    end
-  end
-
-  defp exec_fun(server, id, fun) do
+    lock_instance = make_ref
     try do
-      fun.()
+      case try_lock(server, id, lock_instance, timeout) do
+        :acquired -> fun.()
+        :not_acquired -> {:lock, :not_acquired}
+      end
     after
-      unlock(server, id, self)
+      unlock(server, id, lock_instance, self)
     end
   end
 
-
-  defcallp try_lock(id), from: {caller_pid, _} = from, state: state, timeout: timeout do
+  defcallp try_lock(id, lock_instance), from: {caller_pid, _} = from, state: state, timeout: timeout do
     resource = resource(state, id)
     if Resource.can_lock?(resource, caller_pid) do
-      add_resource_owner(state, id, resource, from)
+      add_resource_owner(state, id, lock_instance, resource, from)
     else
       reply(:not_acquired)
     end
   end
 
-  defcallp lock(id), from: from, state: state, timeout: timeout do
-    add_resource_owner(state, id, resource(state, id), from)
+  defcallp lock(id, lock_instance), from: from, state: state, timeout: timeout do
+    add_resource_owner(state, id, lock_instance, resource(state, id), from)
   end
 
-  defp add_resource_owner(state, id, resource, {caller_pid, _} = from) do
+  defp add_resource_owner(state, id, lock_instance, resource, {caller_pid, _} = from) do
     state
-    |> inc_monitor_ref(caller_pid)
-    |> handle_resource_change(id, Resource.inc_lock(resource, caller_pid, from))
+    |> inc_monitor_ref(caller_pid, lock_instance)
+    |> handle_resource_change(id, Resource.inc_lock(resource, lock_instance, caller_pid, from))
     |> new_state
   end
 
 
-  defcast unlock(id, caller_pid), state: state do
+  defcastp unlock(id, lock_instance, caller_pid), state: state do
     state
-    |> dec_monitor_ref(caller_pid)
-    |> handle_resource_change(id, Resource.dec_lock(resource(state, id), caller_pid))
+    |> dec_monitor_ref(caller_pid, lock_instance)
+    |> handle_resource_change(id, Resource.dec_lock(resource(state, id), lock_instance, caller_pid))
     |> new_state
   end
 
@@ -125,12 +126,12 @@ defmodule ConCache.Lock do
   end
 
 
-  defp inc_monitor_ref(%__MODULE__{monitors: monitors} = state, caller_pid) do
-    %__MODULE__{state | monitors: Monitors.inc_ref(monitors, caller_pid)}
+  defp inc_monitor_ref(%__MODULE__{monitors: monitors} = state, caller_pid, lock_instance) do
+    %__MODULE__{state | monitors: Monitors.inc_ref(monitors, caller_pid, lock_instance)}
   end
 
-  defp dec_monitor_ref(%__MODULE__{monitors: monitors} = state, caller_pid) do
-    %__MODULE__{state | monitors: Monitors.dec_ref(monitors, caller_pid)}
+  defp dec_monitor_ref(%__MODULE__{monitors: monitors} = state, caller_pid, lock_instance) do
+    %__MODULE__{state | monitors: Monitors.dec_ref(monitors, caller_pid, lock_instance)}
   end
 
   defp unmonitor(%__MODULE__{monitors: monitors} = state, caller_pid) do
