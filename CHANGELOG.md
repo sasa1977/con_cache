@@ -1,3 +1,8 @@
+# v0.8.1
+
+## Fixes
+- Proper unlocking of an item. Previously it was possible that a process keeps the resource locked forever if the lock attempt timed out.
+
 # v0.8.0
 
 ## Breaking changes
