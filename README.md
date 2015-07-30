@@ -10,8 +10,6 @@ ConCache (Concurrent Cache) is an ETS based key/value storage with following add
 * TTL support
 * modification callbacks
 
-There is currently no proper reference documentation. For quick info, you can take a look at `con_cache.ex` where all interface functions are listed, and typespecs are provided.
-
 ## Usage in OTP applications
 
 Setup project and app dependency in your `mix.exs`:
