@@ -1,3 +1,13 @@
+# v0.10.0
+
+## Improvements
+- add `ConCache.size/1`
+
+# v0.9.0
+
+## Fixes
+- Support for Elixir 1.1
+
 # v0.8.1
 
 ## Fixes
