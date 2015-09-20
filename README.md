@@ -53,6 +53,7 @@ ConCache.put(:my_cache, key, value)         # inserts value or overwrites the ol
 ConCache.insert_new(:my_cache, key, value)  # inserts value or returns {:error, :already_exists}
 ConCache.get(:my_cache, key)
 ConCache.delete(:my_cache, key)
+ConCache.size(:my_cache)
 
 ConCache.update(:my_cache, key, fn(old_value) ->
   # This function is isolated on a row level. Modifications such as update, put, delete,

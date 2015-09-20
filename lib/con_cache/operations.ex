@@ -37,6 +37,9 @@ defmodule ConCache.Operations do
     end)
   end
 
+  def size(%ConCache{ets: ets} = cache) do
+    :ets.info(ets) |> Keyword.get(:size)
+  end
 
   def insert_new(cache, key, value) do
     update(cache, key, &do_insert_new(value, &1))
