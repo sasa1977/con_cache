@@ -150,6 +150,13 @@ defmodule ConCache do
     do: Operations.put(Owner.cache(cache_id), key, value)
 
   @doc """
+  Returns the number of items stored in the cache.
+  """
+  @spec size(t) :: non_neg_integer
+  def size(cache_id),
+    do: Operations.size(Owner.cache(cache_id))
+
+  @doc """
   Dirty equivalent of `put/3`.
   """
   @spec dirty_put(t, key, store_value) :: :ok

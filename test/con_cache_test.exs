@@ -77,6 +77,14 @@ defmodule ConCacheTest do
     end)
   end
 
+  test "size" do
+    with_cache(fn(cache) ->
+      assert ConCache.size(cache) == 0
+      ConCache.put(cache, :a, "foo")
+      assert ConCache.size(cache) == 1
+    end)
+  end
+
   test "dirty" do
     with_cache(fn(cache) ->
       assert ConCache.dirty_put(cache, :a, 1) == :ok
