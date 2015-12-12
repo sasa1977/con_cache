@@ -119,7 +119,7 @@ defmodule LockTest do
     Enum.each(1..10, fn(x) ->
       key = rem(x, 3)
       spawn(fn() ->
-        (custom || fn(_) -> end).(x)
+        (custom || fn(_) -> :ok end).(x)
         exec_lock(lock, key, fn() ->
           :timer.sleep(10)
 

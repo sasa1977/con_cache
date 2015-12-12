@@ -37,7 +37,7 @@ defmodule ConCache.Operations do
     end)
   end
 
-  def size(%ConCache{ets: ets} = cache) do
+  def size(%ConCache{ets: ets}) do
     :ets.info(ets) |> Keyword.get(:size)
   end
 
