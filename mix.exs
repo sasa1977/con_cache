@@ -33,7 +33,7 @@ defmodule ConCache.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :exactor], mod: {ConCache.Application, []}]
+    [applications: [:logger], mod: {ConCache.Application, []}]
   end
 
   defp deps do
