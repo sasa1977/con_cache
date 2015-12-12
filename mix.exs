@@ -10,9 +10,11 @@ defmodule ConCache.Mixfile do
       app: :con_cache,
       version: @version,
       elixir: "~> 1.0",
+      build_embedded: Mix.env == :prod,
+      start_permanent: Mix.env == :prod,
       deps: deps,
       package: [
-        contributors: ["Saša Jurić"],
+        maintainers: ["Saša Jurić"],
         licenses: ["MIT"],
         links: %{
           "Github" => "https://github.com/sasa1977/con_cache",
