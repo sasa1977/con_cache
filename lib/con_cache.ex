@@ -143,6 +143,20 @@ defmodule ConCache do
   def get(cache_id, key), do: Operations.get(Owner.cache(cache_id), key)
 
   @doc """
+  Searches for items in the cache.
+
+  For more information on MatchSpecs, look into :ets.select/2.
+  ConCache keeps tuples of {key, value} in the table.
+  TTL can only be updated if the MatchFunctions Result is the object itself: [:"$_"].
+
+  A select is always "dirty", meaning it doesn't block while someone is updating
+  the items under the same key. A select doesn't expire TTL of the items, unless
+  `touch_on_read` option is set while starting the cache.
+  """
+  @spec select(t, key) :: [term]
+  def select(cache_id, match_specs), do: Operations.select(Owner.cache(cache_id), match_specs)
+
+  @doc """
   Stores the item into the cache.
   """
   @spec put(t, key, store_value) :: :ok

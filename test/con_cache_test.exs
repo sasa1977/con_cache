@@ -254,4 +254,13 @@ defmodule ConCacheTest do
       end)
     end
   end
+
+  test "select" do
+    with_cache(fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      ConCache.put(cache, :b, 2)
+      assert ConCache.select(cache, [{{:_, :"$1"}, [{:>, :"$1", 1}], [:"$_"]}]) == [{:b, 2}]
+      assert ConCache.select(cache, [{{:_, :"$1"}, [{:>, :"$1", 1}], [:"$1"]}]) == [2]
+    end)
+  end
 end
