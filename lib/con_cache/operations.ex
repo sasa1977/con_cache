@@ -26,6 +26,19 @@ defmodule ConCache.Operations do
     end
   end
 
+  def select(%ConCache{ets: ets} = cache, match_specs) do
+    case :ets.select(ets, match_specs) do
+      [] -> nil
+      results ->
+        results |>
+          Enum.map(fn({key, value}) ->
+                       read_touch(cache, key)
+                       {key, value}
+                     (res) -> res # accept other Results then [:"$_"] but don't update ttl
+          end)
+    end
+  end
+
   defp read_touch(%ConCache{touch_on_read: false}, _), do: :ok
   defp read_touch(%ConCache{touch_on_read: true} = cache, key) do
     touch(cache, key)
