@@ -99,6 +99,7 @@ defmodule ConCache.Operations do
     dirty_put(cache, key, %ConCache.Item{value: value, ttl: ttl})
   end
 
+  defp set_ttl(_, _, :no_update), do: :ok
   defp set_ttl(%ConCache{ttl_manager: nil}, _, _), do: :ok
   defp set_ttl(%ConCache{ttl_manager: ttl_manager}, key, ttl) do
     ConCache.Owner.set_ttl(ttl_manager, key, ttl)
