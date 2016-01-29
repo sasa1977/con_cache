@@ -61,13 +61,13 @@ ConCache.update(:my_cache, key, fn(old_value) ->
   # Modifications on other items are not affected.
   # Reads are always dirty.
 
-  new_value
+  {:ok, new_value}
 end)
 
 # Similar to update, but executes provided function only if item exists.
 # Otherwise returns {:error, :not_existing}
 ConCache.update_existing(:my_cache, key, fn(old_value) ->
-  new_value
+  {:ok, new_value}
 end)
 
 
@@ -144,7 +144,7 @@ And you can override ttl for each item:
 ConCache.put(:my_cache, key, %ConCache.Item{value: value, ttl: ttl})
 
 ConCache.update(:my_cache, key, fn(old_value) ->
-  %ConCache.Item{value: new_value, ttl: ttl}
+  {:ok, %ConCache.Item{value: new_value, ttl: ttl}}
 end)
 ```
 
