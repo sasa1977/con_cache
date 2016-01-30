@@ -69,6 +69,17 @@ defmodule ConCacheTest do
     end)
   end
 
+  test "invalid update" do
+    with_cache(fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      assert_raise(
+        RuntimeError,
+        ~r/^Invalid return value.*/,
+        fn -> ConCache.update(cache, :a, fn(_) -> :invalid_return_value end) end
+      )
+    end)
+  end
+
   test "get_or_store" do
     with_cache(fn(cache) ->
       assert ConCache.get_or_store(cache, :a, fn() -> 1 end) == 1

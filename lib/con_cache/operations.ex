@@ -74,6 +74,7 @@ defmodule ConCache.Operations do
     end) || {:error, :not_existing}
   end
 
+
   defp do_update(_, _, {:error, _} = error), do: error
 
   defp do_update(cache, key, {:ok, %ConCache.Item{} = new_value}) do
@@ -83,6 +84,14 @@ defmodule ConCache.Operations do
   defp do_update(cache, key, {:ok, new_value}) do
     dirty_put(cache, key, %ConCache.Item{value: new_value, ttl: :renew})
   end
+
+  defp do_update(_cache, _key, invalid_return_value) do
+    raise(
+      "Invalid return value: #{inspect(invalid_return_value)}\n" <>
+      "Update lambda should return {:ok, new_value} or {:error, reason}."
+    )
+  end
+
 
   def dirty_put(
     %ConCache{ets: ets, owner_pid: owner_pid} = cache,
