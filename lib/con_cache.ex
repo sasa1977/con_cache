@@ -3,7 +3,7 @@ defmodule ConCache.Item do
   This struct can be used in place of naked values to set per-item TTL values.
   """
   defstruct value: nil, ttl: 0
-  @type t :: %ConCache.Item{value: ConCache.value, ttl: pos_integer}
+  @type t :: %ConCache.Item{value: ConCache.value, ttl: pos_integer | :renew | :no_update}
 end
 
 defmodule ConCache do

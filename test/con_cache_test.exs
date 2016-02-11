@@ -186,6 +186,20 @@ defmodule ConCacheTest do
     end
   end)
 
+  test "no_update" do
+    with_cache(
+      [ttl_check: 10, ttl: 50],
+      fn(cache) ->
+        ConCache.put(cache, :a, 1)
+        :timer.sleep(40)
+        ConCache.put(cache, :a, %ConCache.Item{value: 2, ttl: :no_update})
+        ConCache.update(cache, :a, fn(_old) -> {:ok, %ConCache.Item{value: 3, ttl: :no_update}} end)
+        assert ConCache.get(cache, :a) == 3
+        :timer.sleep(40)
+        assert ConCache.get(cache, :a) == nil
+      end)
+  end
+
   defp test_renew_ttl(cache, fun) do
     ConCache.put(cache, :a, 1)
     :timer.sleep(50)
