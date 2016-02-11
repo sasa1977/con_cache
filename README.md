@@ -148,6 +148,16 @@ ConCache.update(:my_cache, key, fn(old_value) ->
 end)
 ```
 
+And you can update an item without resetting the item's ttl:
+
+```elixir
+ConCache.put(:my_cache, key, %ConCache.Item{value: value, ttl: :no_update})
+
+ConCache.update(:my_cache, key, fn(old_value) ->
+  %ConCache.Item{value: new_value, ttl: :no_update}
+end)
+```
+
 If you use ttl value of 0 the item never expires.
 In addition, unless you set `ttl_check` interval, the ttl check process will not be started, and items will never expire.
 
