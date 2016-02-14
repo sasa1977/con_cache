@@ -154,7 +154,7 @@ And you can update an item without resetting the item's ttl:
 ConCache.put(:my_cache, key, %ConCache.Item{value: value, ttl: :no_update})
 
 ConCache.update(:my_cache, key, fn(old_value) ->
-  %ConCache.Item{value: new_value, ttl: :no_update}
+  {:ok, %ConCache.Item{value: new_value, ttl: :no_update}}
 end)
 ```
 
