@@ -200,6 +200,17 @@ defmodule ConCacheTest do
       end)
   end
 
+  test "created key with update should have default ttl" do
+    with_cache(
+    [ttl_check: 10, ttl: 10],
+    fn(cache) ->
+      ConCache.update(cache, :a, fn(_) -> {:ok, 1} end)
+      assert ConCache.get(cache, :a) == 1
+      :timer.sleep(50)
+      refute ConCache.get(cache, :a) == 1
+    end)
+  end
+
   defp test_renew_ttl(cache, fun) do
     ConCache.put(cache, :a, 1)
     :timer.sleep(50)

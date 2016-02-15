@@ -17,12 +17,19 @@ defmodule ConCache.Operations do
     {pid, key}
   end
 
-  def get(%ConCache{ets: ets} = cache, key) do
+  def get(cache, key) do
+    case fetch(cache, key) do
+      {:ok, value} -> value
+      :error -> nil
+    end
+  end
+
+  defp fetch(%ConCache{ets: ets} = cache, key) do
     case :ets.lookup(ets, key) do
       [{^key, value}] ->
         read_touch(cache, key)
-        value
-      _ -> nil
+        {:ok, value}
+      _ -> :error
     end
   end
 
@@ -54,12 +61,15 @@ defmodule ConCache.Operations do
 
   def update(cache, key, fun) do
     isolated(cache, key, fn() ->
-      do_update(cache, key, fun.(get(cache, key)))
+      dirty_update(cache, key, fun)
     end)
   end
 
   def dirty_update(cache, key, fun) do
-    do_update(cache, key, fun.(get(cache, key)))
+    case fetch(cache, key) do
+      {:ok, value} -> do_update(cache, key, fun.(value), true)
+      :error -> do_update(cache, key, fun.(nil), false)
+    end
   end
 
   def update_existing(cache, key, fun) do
@@ -70,22 +80,26 @@ defmodule ConCache.Operations do
 
   def dirty_update_existing(cache, key, fun) do
     with_existing(cache, key, fn(existing) ->
-      do_update(cache, key, fun.(existing))
+      do_update(cache, key, fun.(existing), true)
     end) || {:error, :not_existing}
   end
 
 
-  defp do_update(_, _, {:error, _} = error), do: error
+  defp do_update(_, _, {:error, _} = error, _), do: error
 
-  defp do_update(cache, key, {:ok, %ConCache.Item{} = new_value}) do
+  defp do_update(cache, key, {:ok, %ConCache.Item{} = new_value}, _) do
     dirty_put(cache, key, new_value)
   end
 
-  defp do_update(cache, key, {:ok, new_value}) do
+  defp do_update(cache, key, {:ok, new_value}, true) do
     dirty_put(cache, key, %ConCache.Item{value: new_value, ttl: :renew})
   end
 
-  defp do_update(_cache, _key, invalid_return_value) do
+  defp do_update(cache, key, {:ok, new_value}, false) do
+    dirty_put(cache, key, new_value)
+  end
+
+  defp do_update(_cache, _key, invalid_return_value, _exists) do
     raise(
       "Invalid return value: #{inspect(invalid_return_value)}\n" <>
       "Update lambda should return {:ok, new_value} or {:error, reason}."
