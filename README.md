@@ -1,5 +1,6 @@
 # ConCache
 
+[![Build Status](https://travis-ci.org/sasa1977/con_cache.svg?branch=master)](https://travis-ci.org/sasa1977/con_cache)
 [![hex.pm](https://img.shields.io/hexpm/v/con_cache.svg?style=flat-square)](https://hex.pm/packages/con_cache)
 [![hexdocs.pm](https://img.shields.io/badge/docs-latest-green.svg?style=flat-square)](https://hexdocs.pm/con_cache/)
 
