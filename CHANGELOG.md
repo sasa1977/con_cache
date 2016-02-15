@@ -1,3 +1,13 @@
+# v0.11.0
+
+## Improvements
+- Support the avoiding prolongation of ttls when updated items through the `:no_update` ttl value in `%ConCache.Item{}`
+
+## Fixes
+
+- New items inserted with `ConCache.update/3` and `ConCache.dirty_update/3` never expired.
+
+
 # v0.10.0
 
 ## Improvements
