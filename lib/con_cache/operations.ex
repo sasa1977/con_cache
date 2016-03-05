@@ -123,21 +123,13 @@ defmodule ConCache.Operations do
     end
   end
 
-
   defp do_update(_, _, {:error, _} = error, _), do: error
-
-  defp do_update(cache, key, {:ok, %ConCache.Item{} = new_value}, _) do
-    dirty_put(cache, key, new_value)
-  end
-
-  defp do_update(cache, key, {:ok, new_value}, true) do
-    dirty_put(cache, key, %ConCache.Item{value: new_value, ttl: :renew})
-  end
-
-  defp do_update(cache, key, {:ok, new_value}, false) do
-    dirty_put(cache, key, new_value)
-  end
-
+  defp do_update(cache, key, {:ok, %ConCache.Item{ttl: ttl, value: new_value}}, _),
+    do: perform_put(cache, key, new_value, ttl)
+  defp do_update(cache, key, {:ok, new_value}, true),
+    do: perform_put(cache, key, new_value, :renew)
+  defp do_update(cache, key, {:ok, new_value}, false),
+    do: perform_put(cache, key, new_value, cache.ttl)
   defp do_update(_cache, _key, invalid_return_value, _exists) do
     raise(
       "Invalid return value: #{inspect(invalid_return_value)}\n" <>
@@ -145,20 +137,16 @@ defmodule ConCache.Operations do
     )
   end
 
+  def dirty_put(cache, key, %ConCache.Item{ttl: ttl, value: value}),
+    do: perform_put(cache, key, value, ttl)
+  def dirty_put(cache, key, value),
+    do: perform_put(cache, key, value, cache.ttl)
 
-  def dirty_put(
-    %ConCache{ets: ets, owner_pid: owner_pid} = cache,
-    key,
-    %ConCache.Item{ttl: ttl, value: value}
-  ) do
+  defp perform_put(%ConCache{ets: ets, owner_pid: owner_pid} = cache, key, value, ttl) do
     set_ttl(cache, key, ttl)
     :ets.insert(ets, {key, value})
     invoke_callback(cache, {:update, owner_pid, key, value})
     :ok
-  end
-
-  def dirty_put(%ConCache{ttl: ttl} = cache, key, value) do
-    dirty_put(cache, key, %ConCache.Item{value: value, ttl: ttl})
   end
 
   defp set_ttl(_, _, :no_update), do: :ok
