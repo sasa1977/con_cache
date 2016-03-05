@@ -78,15 +78,20 @@ defmodule ConCache.Operations do
   end
 
   def insert_new(cache, key, value) do
-    update(cache, key, &do_insert_new(value, &1))
+    isolated(cache, key, fn() ->
+      dirty_insert_new(cache, key, value)
+    end)
   end
 
-  def dirty_insert_new(cache, key, value) do
-    dirty_update(cache, key, &do_insert_new(value, &1))
+  def dirty_insert_new(%ConCache{ets: ets, owner_pid: owner_pid, ttl: ttl} = cache, key, value) do
+    if :ets.insert_new(ets, {key, value}) do
+      set_ttl(cache, key, ttl)
+      invoke_callback(cache, {:update, owner_pid, key, value})
+      :ok
+    else
+      {:error, :already_exists}
+    end
   end
-
-  defp do_insert_new(value, nil), do: {:ok, value}
-  defp do_insert_new(_, _), do: {:error, :already_exists}
 
   def update(cache, key, fun) do
     isolated(cache, key, fn() ->
