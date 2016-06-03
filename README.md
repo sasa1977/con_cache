@@ -44,6 +44,24 @@ Supervisor.start_link(
 )
 ```
 
+In the Phoenix web framework, you can find this in `lib/<myapp>/<myapp>.ex`.
+
+```elixir
+defmodule IrWebsite do
+  use Application
+
+  def start(_type, _args) do
+    ...
+    children = [
+      ...
+      worker(ConCache, [[], [name: :my_cache]])
+    ]
+    ...
+    Supervisor.start_link(children, opts)
+  end
+end
+```
+
 Notice the `name: :my_cache` option. The resulting process will be registered under this alias. Now you can use the cache as follows:
 
 ```elixir
