@@ -44,6 +44,8 @@ Supervisor.start_link(
 )
 ```
 
+For OTP apps, you can generally find this in `lib/<myapp>.ex`. In the Phoenix web framework, look in the `start` function and add the worker to the `children` list.
+
 Notice the `name: :my_cache` option. The resulting process will be registered under this alias. Now you can use the cache as follows:
 
 ```elixir
