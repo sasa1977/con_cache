@@ -26,19 +26,18 @@ defmodule ConCache.Owner do
     ets = create_ets(options[:ets_options] || [])
     check_ets(ets)
 
+    state = start_ttl_loop(options)
+    ttl_manager = if Map.get(state, :ttl_check) != nil, do: self
+
     cache = %ConCache{
       owner_pid: self,
       ets: ets,
+      ttl_manager: ttl_manager,
       ttl: options[:ttl] || 0,
       acquire_lock_timeout: options[:acquire_lock_timeout] || 5000,
       callback: options[:callback],
       touch_on_read: options[:touch_on_read] || false
     }
-
-    state = start_ttl_loop(options)
-    if Map.get(state, :ttl_check) != nil do
-      cache = %ConCache{cache | ttl_manager: self}
-    end
 
     state = %__MODULE__{state | monitor_ref: Process.monitor(Process.whereis(:con_cache_registry))}
     ConCache.Registry.register(cache)
