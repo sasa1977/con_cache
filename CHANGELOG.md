@@ -1,3 +1,7 @@
+# v0.11.1
+
+- Fix warnings on 1.3.0
+
 # v0.11.0
 
 ## Improvements
