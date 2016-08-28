@@ -84,6 +84,24 @@ defmodule ConCacheTest do
     end)
   end
 
+  test "delete on bag" do
+    with_cache([ets_options: [:bag]], fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      ConCache.put(cache, :a, 2)
+      assert ConCache.delete(cache, :a) == :ok
+      assert ConCache.get(cache, :a) == nil
+    end)
+  end
+
+  test "delete on duplicate_bag" do
+    with_cache([ets_options: [:duplicate_bag]], fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      ConCache.put(cache, :a, 1)
+      assert ConCache.delete(cache, :a) == :ok
+      assert ConCache.get(cache, :a) == nil
+    end)
+  end
+
   test "update" do
     with_cache(fn(cache) ->
       ConCache.put(cache, :a, 1)
