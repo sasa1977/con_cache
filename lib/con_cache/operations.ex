@@ -26,9 +26,19 @@ defmodule ConCache.Operations do
 
   defp fetch(%ConCache{ets: ets} = cache, key) do
     case :ets.lookup(ets, key) do
+      [] -> :error
+
       [{^key, value}] ->
-        read_touch(cache, key)
-        {:ok, value}
+          read_touch(cache, key)
+          {:ok, value}
+
+      values when is_list(values) ->
+          values =
+            values
+            |> Enum.map(fn {^key, value} -> value end)
+          read_touch(cache, key)
+          {:ok, values}
+
       _ -> :error
     end
   end
