@@ -33,7 +33,7 @@ defmodule ConCacheTest do
     end)
   end
 
-  test "multiple put update on bag" do
+  test "multiple put on bag" do
     with_cache([ets_options: [:bag]],fn(cache) ->
       ConCache.put(cache, :a, 1)
       ConCache.put(cache, :a, 2)
@@ -55,6 +55,24 @@ defmodule ConCacheTest do
       assert ConCache.get(cache, :b) == 2
       assert ConCache.insert_new(cache, :b, 3) == {:error, :already_exists}
       assert ConCache.get(cache, :b) == 2
+    end)
+  end
+
+  test "insert_new after multiple put on bag" do
+    with_cache([ets_options: [:bag]],fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      ConCache.put(cache, :a, 2)
+      ConCache.insert_new(cache, :a, 3)
+      assert ConCache.get(cache, :a) == [1,2]
+    end)
+  end
+
+  test "insert_new after multiple put on duplicate_bag" do
+    with_cache([ets_options: [:duplicate_bag]],fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      ConCache.put(cache, :a, 1)
+      ConCache.insert_new(cache, :a, 2)
+      assert ConCache.get(cache, :a) == [1,1]
     end)
   end
 
