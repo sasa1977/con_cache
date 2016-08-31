@@ -143,6 +143,28 @@ defmodule ConCacheTest do
     end)
   end
 
+  test "raise when update_existing bag" do
+    with_cache([ets_options: [:bag]], fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      assert_raise(
+        ArgumentError,
+        ~r/^This function is.*/,
+        fn -> ConCache.update_existing(cache, :a,&({:ok, &1 + 1})) end
+      )
+    end)
+  end
+
+  test "raise when update_existing duplicate_bag" do
+    with_cache([ets_options: [:duplicate_bag]], fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      assert_raise(
+        ArgumentError,
+        ~r/^This function is.*/,
+        fn -> ConCache.update_existing(cache, :a,&({:ok, &1 + 1})) end
+      )
+    end)
+  end
+
   test "invalid update" do
     with_cache(fn(cache) ->
       ConCache.put(cache, :a, 1)
@@ -158,6 +180,24 @@ defmodule ConCacheTest do
     with_cache(fn(cache) ->
       assert ConCache.get_or_store(cache, :a, fn() -> 1 end) == 1
       assert ConCache.get_or_store(cache, :a, fn() -> 2 end) == 1
+      assert ConCache.get_or_store(cache, :b, fn() -> 4 end) == 4
+    end)
+  end
+
+  test "get_or_store on bag" do
+    with_cache([ets_options: [:bag]],fn(cache) ->
+      assert ConCache.get_or_store(cache, :a, fn() -> 1 end) == 1
+      ConCache.put(cache, :a, 3)
+      assert ConCache.get_or_store(cache, :a, fn() -> 2 end) == [1, 3]
+      assert ConCache.get_or_store(cache, :b, fn() -> 4 end) == 4
+    end)
+  end
+
+  test "get_or_store on duplicate_bag" do
+    with_cache([ets_options: [:duplicate_bag]],fn(cache) ->
+      assert ConCache.get_or_store(cache, :a, fn() -> 1 end) == 1
+      ConCache.put(cache, :a, 1)
+      assert ConCache.get_or_store(cache, :a, fn() -> 2 end) == [1, 1]
       assert ConCache.get_or_store(cache, :b, fn() -> 4 end) == 4
     end)
   end

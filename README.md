@@ -237,8 +237,6 @@ ConCache.start_link(ets_options: [
 ])
 ```
 
-The allowed types are set and ordered_set.
-
 Additionally, you can override ConCache, and access ets directly:
 
 ```elixir
@@ -246,6 +244,13 @@ Additionally, you can override ConCache, and access ets directly:
 ```
 
 Of course, this completely overrides additional ConCache behavior, such as ttl, row locking and callbacks.
+
+#### Bag and Duplicate Bag
+Those types are now supported by ConCache but like ETS, some functions are not supported by those types. Here are the list of functions **not** supported by bag and duplicate bag type tables:
+* `update/3`
+* `dirty_update/3`
+* `update_existing/3`
+* `dirty_update_existing/3`
 
 ### Locking
 
