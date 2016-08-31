@@ -112,6 +112,28 @@ defmodule ConCacheTest do
     end)
   end
 
+  test "raise when update bag" do
+    with_cache([ets_options: [:bag]], fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      assert_raise(
+        ArgumentError,
+        ~r/^This function is.*/,
+        fn -> ConCache.update(cache, :a,&({:ok, &1 + 1})) end
+      )
+    end)
+  end
+
+  test "raise when update duplicate_bag" do
+    with_cache([ets_options: [:duplicate_bag]], fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      assert_raise(
+        ArgumentError,
+        ~r/^This function is.*/,
+        fn -> ConCache.update(cache, :a,&({:ok, &1 + 1})) end
+      )
+    end)
+  end
+
   test "update_existing" do
     with_cache(fn(cache) ->
       assert ConCache.update_existing(cache, :a, &({:ok, &1 + 1})) == {:error, :not_existing}
