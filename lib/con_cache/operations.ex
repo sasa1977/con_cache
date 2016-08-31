@@ -43,6 +43,25 @@ defmodule ConCache.Operations do
     end
   end
 
+  defp valid_ets_type?(%ConCache{ets: ets}) do
+    case :ets.info(ets, :type) do
+      :set -> true
+      :ordered_set -> true
+      :bag -> false
+      :duplicate_bag -> false
+    end
+  end
+
+  defp raise_ets_type(%ConCache{ets: ets}) do
+    type = :ets.info(ets, :type)
+    raise ArgumentError,
+      """
+      This function is not supported by ets tables of #{type} type.
+      update/3, dirty_update/3, update_existing/3 and dirty_update_existing/3
+      are only supported by :set and :ordered_set types of ets tables.
+      """
+  end
+
   defp read_touch(%ConCache{touch_on_read: false}, _), do: :ok
   defp read_touch(%ConCache{touch_on_read: true} = cache, key) do
     touch(cache, key)
@@ -76,9 +95,13 @@ defmodule ConCache.Operations do
   end
 
   def dirty_update(cache, key, fun) do
+    if valid_ets_type?(cache) do
     case fetch(cache, key) do
       {:ok, value} -> do_update(cache, key, fun.(value), true)
       :error -> do_update(cache, key, fun.(nil), false)
+    end
+    else
+      raise_ets_type(cache)
     end
   end
 
@@ -89,9 +112,13 @@ defmodule ConCache.Operations do
   end
 
   def dirty_update_existing(cache, key, fun) do
-    with_existing(cache, key, fn(existing) ->
-      do_update(cache, key, fun.(existing), true)
-    end) || {:error, :not_existing}
+    if valid_ets_type?(cache) do
+      with_existing(cache, key, fn(existing) ->
+        do_update(cache, key, fun.(existing), true)
+      end) || {:error, :not_existing}
+    else
+      raise_ets_type(cache)
+    end
   end
 
 
