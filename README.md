@@ -251,6 +251,8 @@ Those types are now supported by ConCache but like ETS, some functions are not s
 * `dirty_update/3`
 * `update_existing/3`
 * `dirty_update_existing/3`
+* `get_or_store/3`
+* `dirty_get_or_store/3`
 
 ### Locking
 
