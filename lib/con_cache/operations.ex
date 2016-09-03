@@ -26,11 +26,41 @@ defmodule ConCache.Operations do
 
   defp fetch(%ConCache{ets: ets} = cache, key) do
     case :ets.lookup(ets, key) do
+      [] -> :error
+
       [{^key, value}] ->
-        read_touch(cache, key)
-        {:ok, value}
+          read_touch(cache, key)
+          {:ok, value}
+
+      values when is_list(values) ->
+          values =
+            values
+            |> Enum.map(fn {^key, value} -> value end)
+          read_touch(cache, key)
+          {:ok, values}
+
       _ -> :error
     end
+  end
+
+  defp valid_ets_type?(%ConCache{ets: ets}) do
+    case :ets.info(ets, :type) do
+      :set -> true
+      :ordered_set -> true
+      :bag -> false
+      :duplicate_bag -> false
+    end
+  end
+
+  defp raise_ets_type(%ConCache{ets: ets}) do
+    type = :ets.info(ets, :type)
+    raise ArgumentError,
+      """
+      This function is not supported by ets tables of #{type} type.
+      update/3, dirty_update/3, update_existing/3, dirty_update_existing/3,
+      get_or_store/3 and dirty_get_or_store/3 are only supported by :set and
+      :ordered_set types of ets tables.
+      """
   end
 
   defp read_touch(%ConCache{touch_on_read: false}, _), do: :ok
@@ -49,15 +79,20 @@ defmodule ConCache.Operations do
   end
 
   def insert_new(cache, key, value) do
-    update(cache, key, &do_insert_new(value, &1))
+    isolated(cache, key, fn() ->
+      dirty_insert_new(cache, key, value)
+    end)
   end
 
-  def dirty_insert_new(cache, key, value) do
-    dirty_update(cache, key, &do_insert_new(value, &1))
+  def dirty_insert_new(%ConCache{ets: ets, owner_pid: owner_pid, ttl: ttl} = cache, key, value) do
+    if :ets.insert_new(ets, {key, value}) do
+      set_ttl(cache, key, ttl)
+      invoke_callback(cache, {:update, owner_pid, key, value})
+      :ok
+    else
+      {:error, :already_exists}
+    end
   end
-
-  defp do_insert_new(value, nil), do: {:ok, value}
-  defp do_insert_new(_, _), do: {:error, :already_exists}
 
   def update(cache, key, fun) do
     isolated(cache, key, fn() ->
@@ -66,9 +101,13 @@ defmodule ConCache.Operations do
   end
 
   def dirty_update(cache, key, fun) do
+    if valid_ets_type?(cache) do
     case fetch(cache, key) do
       {:ok, value} -> do_update(cache, key, fun.(value), true)
       :error -> do_update(cache, key, fun.(nil), false)
+    end
+    else
+      raise_ets_type(cache)
     end
   end
 
@@ -79,9 +118,13 @@ defmodule ConCache.Operations do
   end
 
   def dirty_update_existing(cache, key, fun) do
-    with_existing(cache, key, fn(existing) ->
-      do_update(cache, key, fun.(existing), true)
-    end) || {:error, :not_existing}
+    if valid_ets_type?(cache) do
+      with_existing(cache, key, fn(existing) ->
+        do_update(cache, key, fun.(existing), true)
+      end) || {:error, :not_existing}
+    else
+      raise_ets_type(cache)
+    end
   end
 
 
@@ -140,9 +183,13 @@ defmodule ConCache.Operations do
   end
 
   def get_or_store(cache, key, fun) do
-    case get(cache, key) do
-      nil -> isolated_get_or_store(cache, key, fun)
-      value -> value
+    if valid_ets_type?(cache) do
+      case get(cache, key) do
+        nil -> isolated_get_or_store(cache, key, fun)
+        value -> value
+      end
+    else
+      raise_ets_type(cache)
     end
   end
 
@@ -153,13 +200,17 @@ defmodule ConCache.Operations do
   end
 
   def dirty_get_or_store(cache, key, fun) do
-    case get(cache, key) do
-      nil ->
-        new_value = fun.()
-        dirty_put(cache, key, new_value)
-        value(new_value)
+    if valid_ets_type?(cache) do
+      case get(cache, key) do
+        nil ->
+          new_value = fun.()
+          dirty_put(cache, key, new_value)
+          value(new_value)
 
-      existing -> existing
+        existing -> existing
+      end
+    else
+      raise_ets_type(cache)
     end
   end
 

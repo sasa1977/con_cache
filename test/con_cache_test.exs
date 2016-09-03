@@ -33,6 +33,22 @@ defmodule ConCacheTest do
     end)
   end
 
+  test "multiple put on bag" do
+    with_cache([ets_options: [:bag]],fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      ConCache.put(cache, :a, 2)
+      assert ConCache.get(cache, :a) == [1,2]
+    end)
+  end
+
+  test "multiple put on duplicate_bag" do
+    with_cache([ets_options: [:duplicate_bag]],fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      ConCache.put(cache, :a, 1)
+      assert ConCache.get(cache, :a) == [1,1]
+    end)
+  end
+
   test "insert_new" do
     with_cache(fn(cache) ->
       assert ConCache.insert_new(cache, :b, 2) == :ok
@@ -42,8 +58,44 @@ defmodule ConCacheTest do
     end)
   end
 
+  test "insert_new after multiple put on bag" do
+    with_cache([ets_options: [:bag]],fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      ConCache.put(cache, :a, 2)
+      ConCache.insert_new(cache, :a, 3)
+      assert ConCache.get(cache, :a) == [1,2]
+    end)
+  end
+
+  test "insert_new after multiple put on duplicate_bag" do
+    with_cache([ets_options: [:duplicate_bag]],fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      ConCache.put(cache, :a, 1)
+      ConCache.insert_new(cache, :a, 2)
+      assert ConCache.get(cache, :a) == [1,1]
+    end)
+  end
+
   test "delete" do
     with_cache(fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      assert ConCache.delete(cache, :a) == :ok
+      assert ConCache.get(cache, :a) == nil
+    end)
+  end
+
+  test "delete on bag" do
+    with_cache([ets_options: [:bag]], fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      ConCache.put(cache, :a, 2)
+      assert ConCache.delete(cache, :a) == :ok
+      assert ConCache.get(cache, :a) == nil
+    end)
+  end
+
+  test "delete on duplicate_bag" do
+    with_cache([ets_options: [:duplicate_bag]], fn(cache) ->
+      ConCache.put(cache, :a, 1)
       ConCache.put(cache, :a, 1)
       assert ConCache.delete(cache, :a) == :ok
       assert ConCache.get(cache, :a) == nil
@@ -60,12 +112,56 @@ defmodule ConCacheTest do
     end)
   end
 
+  test "raise when update bag" do
+    with_cache([ets_options: [:bag]], fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      assert_raise(
+        ArgumentError,
+        ~r/^This function is.*/,
+        fn -> ConCache.update(cache, :a,&({:ok, &1 + 1})) end
+      )
+    end)
+  end
+
+  test "raise when update duplicate_bag" do
+    with_cache([ets_options: [:duplicate_bag]], fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      assert_raise(
+        ArgumentError,
+        ~r/^This function is.*/,
+        fn -> ConCache.update(cache, :a,&({:ok, &1 + 1})) end
+      )
+    end)
+  end
+
   test "update_existing" do
     with_cache(fn(cache) ->
       assert ConCache.update_existing(cache, :a, &({:ok, &1 + 1})) == {:error, :not_existing}
       ConCache.put(cache, :a, 1)
       assert ConCache.update_existing(cache, :a, &({:ok, &1 + 1})) == :ok
       assert ConCache.get(cache, :a) == 2
+    end)
+  end
+
+  test "raise when update_existing bag" do
+    with_cache([ets_options: [:bag]], fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      assert_raise(
+        ArgumentError,
+        ~r/^This function is.*/,
+        fn -> ConCache.update_existing(cache, :a,&({:ok, &1 + 1})) end
+      )
+    end)
+  end
+
+  test "raise when update_existing duplicate_bag" do
+    with_cache([ets_options: [:duplicate_bag]], fn(cache) ->
+      ConCache.put(cache, :a, 1)
+      assert_raise(
+        ArgumentError,
+        ~r/^This function is.*/,
+        fn -> ConCache.update_existing(cache, :a,&({:ok, &1 + 1})) end
+      )
     end)
   end
 
@@ -88,6 +184,26 @@ defmodule ConCacheTest do
     end)
   end
 
+  test "raise when get_or_store bag" do
+    with_cache([ets_options: [:bag]], fn(cache) ->
+      assert_raise(
+        ArgumentError,
+        ~r/^This function is.*/,
+        fn -> ConCache.get_or_store(cache, :a,fn -> 2 end) end
+      )
+    end)
+  end
+
+  test "raise when get_or_store duplicate_bag" do
+    with_cache([ets_options: [:duplicate_bag]], fn(cache) ->
+      assert_raise(
+        ArgumentError,
+        ~r/^This function is.*/,
+        fn -> ConCache.get_or_store(cache, :a,fn -> 2 end) end
+      )
+    end)
+  end
+  
   test "size" do
     with_cache(fn(cache) ->
       assert ConCache.size(cache) == 0

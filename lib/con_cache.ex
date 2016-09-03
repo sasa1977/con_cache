@@ -56,7 +56,7 @@ defmodule ConCache do
   @type ets_option ::
     :named_table | :compressed | {:heir, pid} |
     {:write_concurrency, boolean} | {:read_concurrency, boolean} |
-    :ordered_set | :set | {:name, atom}
+    :ordered_set | :set | :bag | :duplicate_bag | {:name, atom}
 
   @type options :: [
     {:ttl, non_neg_integer} |
@@ -76,8 +76,6 @@ defmodule ConCache do
   Starts the server and creates an ETS table.
 
   Options:
-    - `:set` - An ETS table will be of the `:set` type (default).
-    - `:ordered_set` - An ETS table will be of the `:ordered_set` type.
     - `{:ttl_check, time_ms}` - A check interval for TTL expiry. This value is
       by default `nil` and you need to provide a positive integer for TTL to work.
       See below for more details on inner workings of TTL.
@@ -92,6 +90,10 @@ defmodule ConCache do
       the lock. Default is 5000.
 
   In addition, following ETS options are supported:
+    - `:set` - An ETS table will be of the `:set` type (default).
+    - `:ordered_set` - An ETS table will be of the `:ordered_set` type.
+    - `:bag` - An ETS table will be of the `:bag` type.
+    - `:duplicate_bag` - An ETS table will be of the `:duplicate_bag` type.
     - `:named_table`
     - `:name`
     - `:heir`
@@ -182,7 +184,8 @@ defmodule ConCache do
 
   The `update_fun` is invoked after the item is locked. Here, you can be certain
   that no other process will update this item, unless they are doing dirty updates
-  or writing directly to the underlying ETS table.
+  or writing directly to the underlying ETS table. This function is not supported
+  by `:bag` or `:duplicate_bag` ETS tables.
 
   The updater lambda must return one of the following:
 
@@ -231,6 +234,8 @@ defmodule ConCache do
 
   If the item exists in the cache, it is retrieved. Otherwise, the lambda
   function is executed and its result is stored under the given key.
+
+  This function is not supported by `:bag` and `:duplicate_bag` ETS tables.
 
   Note: if the item is already in the cache, this function amounts to a simple get
   without any locking, so you can expect it to be fairly fast.
