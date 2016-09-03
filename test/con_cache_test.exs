@@ -184,24 +184,26 @@ defmodule ConCacheTest do
     end)
   end
 
-  test "get_or_store on bag" do
-    with_cache([ets_options: [:bag]],fn(cache) ->
-      assert ConCache.get_or_store(cache, :a, fn() -> 1 end) == 1
-      ConCache.put(cache, :a, 3)
-      assert ConCache.get_or_store(cache, :a, fn() -> 2 end) == [1, 3]
-      assert ConCache.get_or_store(cache, :b, fn() -> 4 end) == 4
+  test "raise when get_or_store bag" do
+    with_cache([ets_options: [:bag]], fn(cache) ->
+      assert_raise(
+        ArgumentError,
+        ~r/^This function is.*/,
+        fn -> ConCache.get_or_store(cache, :a,fn -> 2 end) end
+      )
     end)
   end
 
-  test "get_or_store on duplicate_bag" do
-    with_cache([ets_options: [:duplicate_bag]],fn(cache) ->
-      assert ConCache.get_or_store(cache, :a, fn() -> 1 end) == 1
-      ConCache.put(cache, :a, 1)
-      assert ConCache.get_or_store(cache, :a, fn() -> 2 end) == [1, 1]
-      assert ConCache.get_or_store(cache, :b, fn() -> 4 end) == 4
+  test "raise when get_or_store duplicate_bag" do
+    with_cache([ets_options: [:duplicate_bag]], fn(cache) ->
+      assert_raise(
+        ArgumentError,
+        ~r/^This function is.*/,
+        fn -> ConCache.get_or_store(cache, :a,fn -> 2 end) end
+      )
     end)
   end
-
+  
   test "size" do
     with_cache(fn(cache) ->
       assert ConCache.size(cache) == 0
