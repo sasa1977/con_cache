@@ -8,7 +8,7 @@ defmodule ConCache.Lock do
   @type result :: any
   @type job :: (() -> result)
 
-  defstruct resources: HashDict.new, monitors: Monitors.new
+  defstruct resources: Map.new, monitors: Monitors.new
 
   use ExActor.Tolerant
 
@@ -111,7 +111,7 @@ defmodule ConCache.Lock do
   end
 
   defp resource(%__MODULE__{resources: resources}, id) do
-    case HashDict.fetch(resources, id) do
+    case Map.fetch(resources, id) do
       {:ok, resource} -> resource
       :error -> Resource.new
     end
@@ -119,9 +119,9 @@ defmodule ConCache.Lock do
 
   defp store_resource(%__MODULE__{resources: resources} = state, id, resource) do
     if Resource.empty?(resource) do
-      %__MODULE__{state | resources: HashDict.delete(resources, id)}
+      %__MODULE__{state | resources: Map.delete(resources, id)}
     else
-      %__MODULE__{state | resources: HashDict.put(resources, id, resource)}
+      %__MODULE__{state | resources: Map.put(resources, id, resource)}
     end
   end
 
