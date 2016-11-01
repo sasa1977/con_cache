@@ -11,7 +11,7 @@ defmodule ConCache.Owner do
     ttls: nil,
     max_time: nil,
     on_expire: nil,
-    pending_ttl_sets: HashDict.new,
+    pending_ttl_sets: Map.new,
     monitor_ref: nil
   ]
 
@@ -115,7 +115,7 @@ defmodule ConCache.Owner do
       do_set_ttl(state, key, ttl)
     end)
 
-    %__MODULE__{state | pending_ttl_sets: HashDict.new}
+    %__MODULE__{state | pending_ttl_sets: Map.new}
   end
 
   defp do_set_ttl(state, key, :renew) do
