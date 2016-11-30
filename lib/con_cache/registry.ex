@@ -21,8 +21,8 @@ defmodule ConCache.Registry do
 
   defhandleinfo {:DOWN, _, :process, pid, _} do
     :ets.delete(:con_cache_registry, pid)
-    noreply
+    noreply()
   end
 
-  defhandleinfo _, do: noreply
+  defhandleinfo _, do: noreply()
 end

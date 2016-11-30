@@ -25,26 +25,26 @@ defmodule ConCache.Lock do
   @spec exec(pid | atom, key, timeout, job) :: result
   @spec exec(pid | atom, key, job) :: result
   def exec(server, id, timeout \\ 5000, fun) do
-    lock_instance = make_ref
+    lock_instance = make_ref()
     try do
       :acquired = lock(server, id, lock_instance, timeout)
       fun.()
     after
-      unlock(server, id, lock_instance, self)
+      unlock(server, id, lock_instance, self())
     end
   end
 
   @spec try_exec(pid | atom, key, job) :: result | {:lock, :not_acquired}
   @spec try_exec(pid | atom, key, timeout, job) :: result | {:lock, :not_acquired}
   def try_exec(server, id, timeout \\ 5000, fun) do
-    lock_instance = make_ref
+    lock_instance = make_ref()
     try do
       case try_lock(server, id, lock_instance, timeout) do
         :acquired -> fun.()
         :not_acquired -> {:lock, :not_acquired}
       end
     after
-      unlock(server, id, lock_instance, self)
+      unlock(server, id, lock_instance, self())
     end
   end
 
@@ -145,5 +145,5 @@ defmodule ConCache.Lock do
     |> new_state
   end
 
-  defhandleinfo _, do: noreply
+  defhandleinfo _, do: noreply()
 end
