@@ -27,10 +27,10 @@ defmodule ConCache.Owner do
     check_ets(ets)
 
     state = start_ttl_loop(options)
-    ttl_manager = if Map.get(state, :ttl_check) != nil, do: self
+    ttl_manager = if Map.get(state, :ttl_check) != nil, do: self()
 
     cache = %ConCache{
-      owner_pid: self,
+      owner_pid: self(),
       ets: ets,
       ttl_manager: ttl_manager,
       ttl: options[:ttl] || 0,
@@ -81,7 +81,7 @@ defmodule ConCache.Owner do
   end
 
   defp start_ttl_loop(options) do
-    me = self
+    me = self()
     case options[:ttl_check] do
       ttl_check when is_integer(ttl_check) and ttl_check > 0 ->
         %__MODULE__{
@@ -103,7 +103,7 @@ defmodule ConCache.Owner do
   end
 
   defcast set_ttl(key, ttl), state: %__MODULE__{pending_ttl_sets: pending_ttl_sets} = state do
-    %__MODULE__{state | pending_ttl_sets: Dict.update(pending_ttl_sets, key, ttl, &queue_ttl_set(&1, ttl))}
+    %__MODULE__{state | pending_ttl_sets: Map.update(pending_ttl_sets, key, ttl, &queue_ttl_set(&1, ttl))}
     |> new_state
   end
 
@@ -174,7 +174,7 @@ defmodule ConCache.Owner do
   end
 
   defp queue_check(%__MODULE__{ttl_check: ttl_check} = state) do
-    :erlang.send_after(ttl_check, self, :check_purge)
+    :erlang.send_after(ttl_check, self(), :check_purge)
     state
   end
 
@@ -192,7 +192,7 @@ defmodule ConCache.Owner do
     when: ref1 == ref2,
     do: stop_server(reason)
 
-  defhandleinfo _, do: noreply
+  defhandleinfo _, do: noreply()
 
   defp increase_time(%__MODULE__{current_time: max, max_time: max} = state) do
     normalize_pending(state)

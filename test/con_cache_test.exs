@@ -203,7 +203,7 @@ defmodule ConCacheTest do
       )
     end)
   end
-  
+
   test "size" do
     with_cache(fn(cache) ->
       assert ConCache.size(cache) == 0
@@ -250,7 +250,7 @@ defmodule ConCacheTest do
   end
 
   test "callback" do
-    me = self
+    me = self()
     with_cache(
       [callback: &send(me, &1)],
       fn(cache) ->
@@ -396,7 +396,7 @@ defmodule ConCacheTest do
     end)
   end
 
-  for name <- [:cache, {:local, :cache}, {:global, :cache}, {:via, :global, :cache}] do
+  for name <- [:cache, {:global, :cache}, {:via, :global, :cache}] do
     test "registration #{inspect name}" do
       with_app(fn ->
         name = unquote(Macro.escape(name))
