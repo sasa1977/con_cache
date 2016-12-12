@@ -38,8 +38,6 @@ defmodule ConCache.Operations do
             |> Enum.map(fn {^key, value} -> value end)
           read_touch(cache, key)
           {:ok, values}
-
-      _ -> :error
     end
   end
 
