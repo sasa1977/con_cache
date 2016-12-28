@@ -39,8 +39,7 @@ defmodule ConCache.Mixfile do
   defp deps do
     [
       {:exactor, "~> 2.2.0"},
-      {:ex_doc, "~> 0.10.0", only: :docs},
-      {:earmark, "~> 0.1", only: :docs}
+      {:ex_doc, "~> 0.14.0", only: :dev}
     ]
   end
 end
