@@ -38,7 +38,14 @@ defmodule ConCache.Owner do
       ttl: options[:ttl] || 0,
       acquire_lock_timeout: options[:acquire_lock_timeout] || 5000,
       callback: options[:callback],
-      touch_on_read: options[:touch_on_read] || false
+      touch_on_read: options[:touch_on_read] || false,
+      lock_pids:
+        1..System.schedulers_online()
+        |> Enum.map(fn(_) ->
+              {:ok, pid} = ConCache.Lock.start_link()
+              pid
+            end)
+        |> List.to_tuple()
     }
 
     {:ok, _} = Registry.register(ConCache, self(), cache)

@@ -42,7 +42,8 @@ defmodule ConCache do
   alias ConCache.Operations
 
   defstruct [
-    :owner_pid, :ets, :ttl_manager, :ttl, :acquire_lock_timeout, :callback, :touch_on_read
+    :owner_pid, :ets, :ttl_manager, :ttl, :acquire_lock_timeout, :callback, :touch_on_read,
+    :lock_pids
   ]
 
   @type t :: pid | atom | {:global, any} | {:via, atom, any}

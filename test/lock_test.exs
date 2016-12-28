@@ -5,10 +5,6 @@ defmodule LockTest do
     assert conduct_test({ConCache.Lock, ConCache.Lock.start_link}) == [{0,18},{1,22},{2,15}]
   end
 
-  test "balancer" do
-    assert conduct_test({ConCache.BalancedLock, nil}) == [{0,18},{1,22},{2,15}]
-  end
-
   test "timeout" do
     {:ok, lock} = ConCache.Lock.start_link
     spawn(fn() -> ConCache.Lock.exec(lock, :a, fn() -> :timer.sleep(100) end) end)
@@ -132,10 +128,6 @@ defmodule LockTest do
         end)
       end)
     end)
-  end
-
-  defp exec_lock({ConCache.BalancedLock, _}, key, fun) do
-    ConCache.BalancedLock.exec(key, fun)
   end
 
   defp exec_lock({ConCache.Lock, {:ok, lock_pid}}, key, fun) do
