@@ -37,7 +37,7 @@ Typically you want to start the cache from a supervisor:
 Supervisor.start_link(
   [
     ...
-    worker(ConCache, [[], [name: :my_cache]])
+    supervisor(ConCache, [[], [name: :my_cache]])
     ...
   ],
   ...
@@ -100,7 +100,7 @@ ConCache.dirty_get_or_store(:my_cache, key, fn() -> ... end)
 You can register your own function which will be invoked after an element is stored or deleted:
 
 ```elixir
-worker(ConCache, [[callback: fn(data) -> ... end], [name: :my_cache]])
+supervisor(ConCache, [[callback: fn(data) -> ... end], [name: :my_cache]])
 
 ConCache.put(:my_cache, key, value)         # fun will be called with {:update, cache_pid, key, value}
 ConCache.delete(:my_cache, key)             # fun will be called with {:delete, cache_pid, key}
@@ -111,7 +111,7 @@ The delete callback is invoked before the item is deleted, so you still have the
 ### TTL
 
 ```elixir
-worker(ConCache, [
+supervisor(ConCache, [
   [
     ttl_check: :timer.seconds(1),
     ttl: :timer.seconds(5)
@@ -125,7 +125,7 @@ This example sets up item expiry check every second. The default expiry for all 
 However, the item lifetime is renewed on every modification. Reads don't extend ttl, but this can be changed when starting cache:
 
 ```elixir
-worker(ConCache, [
+supervisor(ConCache, [
   [
     ttl_check: :timer.seconds(1),
     ttl: :timer.seconds(5),
