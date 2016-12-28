@@ -11,15 +11,17 @@ defmodule ConCache.Owner do
     ttls: nil,
     max_time: nil,
     on_expire: nil,
-    pending_ttl_sets: Map.new,
-    monitor_ref: nil
+    pending_ttl_sets: Map.new
   ]
 
   def cache({:local, local}) when is_atom(local), do: cache(local)
-  def cache(local) when is_atom(local), do: ConCache.Registry.get(Process.whereis(local))
+  def cache(local) when is_atom(local), do: cache(Process.whereis(local))
   def cache({:global, name}), do: cache({:via, :global, name})
   def cache({:via, module, name}), do: cache(module.whereis_name(name))
-  def cache(pid) when is_pid(pid), do: ConCache.Registry.get(pid)
+  def cache(pid) when is_pid(pid) do
+    [{^pid, cache}] = Registry.lookup(ConCache, pid)
+    cache
+  end
 
   defstart start_link(options \\ []), gen_server_opts: :runtime
   defstart start(options \\ []), gen_server_opts: :runtime do
@@ -39,8 +41,7 @@ defmodule ConCache.Owner do
       touch_on_read: options[:touch_on_read] || false
     }
 
-    state = %__MODULE__{state | monitor_ref: Process.monitor(Process.whereis(:con_cache_registry))}
-    ConCache.Registry.register(cache)
+    {:ok, _} = Registry.register(ConCache, self(), cache)
 
     initial_state(state)
   end
@@ -186,11 +187,6 @@ defmodule ConCache.Owner do
     |> queue_check
     |> new_state
   end
-
-  defhandleinfo {:DOWN, ref1, _, _, reason},
-    state: %__MODULE__{monitor_ref: ref2},
-    when: ref1 == ref2,
-    do: stop_server(reason)
 
   defhandleinfo _, do: noreply()
 

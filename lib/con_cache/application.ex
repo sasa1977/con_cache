@@ -7,7 +7,7 @@ defmodule ConCache.Application do
   def start(_, _) do
     Supervisor.start_link(
       [
-        worker(ConCache.Registry, []),
+        worker(Registry, [:unique, ConCache]),
         supervisor(ConCache.BalancedLock, [])
       ],
       strategy: :one_for_all
