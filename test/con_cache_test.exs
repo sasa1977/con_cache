@@ -1,22 +1,9 @@
 defmodule ConCacheTest do
   use ExUnit.Case, async: false
 
-  defp with_app(fun) do
-    try do
-      Logger.add_backend(:console)
-      Application.ensure_all_started(:con_cache)
-      fun.()
-    after
-      Logger.remove_backend(:console)
-      Application.stop(:con_cache)
-    end
-  end
-
   defp with_cache(opts \\ [], fun) do
-    with_app(fn ->
-      {:ok, cache} = ConCache.start(opts)
-      fun.(cache)
-    end)
+    {:ok, cache} = ConCache.start_link(opts)
+    fun.(cache)
   end
 
 
@@ -380,30 +367,26 @@ defmodule ConCacheTest do
   end
 
   test "multiple" do
-    with_app(fn ->
-      {:ok, cache1} = ConCache.start
-      {:ok, cache2} = ConCache.start
-      ConCache.put(cache1, :a, 1)
-      ConCache.put(cache2, :b, 2)
-      assert ConCache.get(cache1, :a) == 1
-      assert ConCache.get(cache1, :b) == nil
-      assert ConCache.get(cache2, :a) == nil
-      assert ConCache.get(cache2, :b) == 2
+    {:ok, cache1} = ConCache.start_link
+    {:ok, cache2} = ConCache.start_link
+    ConCache.put(cache1, :a, 1)
+    ConCache.put(cache2, :b, 2)
+    assert ConCache.get(cache1, :a) == 1
+    assert ConCache.get(cache1, :b) == nil
+    assert ConCache.get(cache2, :a) == nil
+    assert ConCache.get(cache2, :b) == 2
 
-      spawn(fn -> ConCache.isolated(cache1, :a, fn -> :timer.sleep(:infinity) end) end)
-      assert ConCache.isolated(cache2, :a, fn -> :foo end) == :foo
-      assert {:timeout, _} = catch_exit(ConCache.isolated(cache1, :a, 50, fn -> :bar end))
-    end)
+    spawn(fn -> ConCache.isolated(cache1, :a, fn -> :timer.sleep(:infinity) end) end)
+    assert ConCache.isolated(cache2, :a, fn -> :foo end) == :foo
+    assert {:timeout, _} = catch_exit(ConCache.isolated(cache1, :a, 50, fn -> :bar end))
   end
 
   for name <- [:cache, {:global, :cache}, {:via, :global, :cache}] do
     test "registration #{inspect name}" do
-      with_app(fn ->
-        name = unquote(Macro.escape(name))
-        ConCache.start([], name: name)
-        ConCache.put(name, :a, 1)
-        assert ConCache.get(name, :a) == 1
-      end)
+      name = unquote(Macro.escape(name))
+      ConCache.start_link([], name: name)
+      ConCache.put(name, :a, 1)
+      assert ConCache.get(name, :a) == 1
     end
   end
 end
