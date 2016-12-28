@@ -19,7 +19,7 @@ defmodule ConCache.Owner do
   def cache({:global, name}), do: cache({:via, :global, name})
   def cache({:via, module, name}), do: cache(module.whereis_name(name))
   def cache(pid) when is_pid(pid) do
-    [{_, cache}] = Registry.lookup(ConCache, pid)
+    [{_, cache}] = Registry.lookup(ConCache, {pid, __MODULE__})
     cache
   end
 
@@ -39,16 +39,10 @@ defmodule ConCache.Owner do
       acquire_lock_timeout: options[:acquire_lock_timeout] || 5000,
       callback: options[:callback],
       touch_on_read: options[:touch_on_read] || false,
-      lock_pids:
-        1..System.schedulers_online()
-        |> Enum.map(fn(_) ->
-              {:ok, pid} = ConCache.Lock.start_link()
-              pid
-            end)
-        |> List.to_tuple()
+      lock_pids: List.to_tuple(ConCache.LockSupervisor.lock_pids(parent_process()))
     }
 
-    {:ok, _} = Registry.register(ConCache, parent_process(), cache)
+    {:ok, _} = Registry.register(ConCache, {parent_process(), __MODULE__}, cache)
 
     initial_state(state)
   end

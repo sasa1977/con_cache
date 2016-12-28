@@ -118,6 +118,7 @@ defmodule ConCache do
   def start_link(options \\ [], gen_server_options \\ []) do
     Supervisor.start_link(
       [
+        Supervisor.Spec.supervisor(ConCache.LockSupervisor, [System.schedulers_online()]),
         Supervisor.Spec.worker(Owner, [options])
       ],
       [strategy: :one_for_all] ++ Keyword.take(gen_server_options, [:name])
