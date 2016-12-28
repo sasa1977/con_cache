@@ -114,14 +114,14 @@ defmodule ConCache do
   reduce your memory consumption, but could also cause performance penalties.
   Higher values put less pressure on processing, but item expiry is less precise.
   """
-  @spec start_link(options, GenServer.options) :: GenServer.on_start
-  def start_link(options \\ [], gen_server_options \\ []) do
+  @spec start_link(options, [name: GenServer.name]) :: Supervisor.on_start
+  def start_link(options \\ [], sup_opts \\ []) do
     Supervisor.start_link(
       [
         Supervisor.Spec.supervisor(ConCache.LockSupervisor, [System.schedulers_online()]),
         Supervisor.Spec.worker(Owner, [options])
       ],
-      [strategy: :one_for_all] ++ Keyword.take(gen_server_options, [:name])
+      [strategy: :one_for_all] ++ Keyword.take(sup_opts, [:name])
     )
   end
 
