@@ -331,7 +331,7 @@ defmodule ConCacheTest do
     assert {:timeout, _} = catch_exit(ConCache.isolated(cache1, :a, 50, fn -> :bar end))
   end
 
-  for name <- [:cache, {:global, :cache}, {:via, :global, :cache}] do
+  for name <- [:cache, {:global, :cache}, {:via, :global, :cache2}] do
     test "registration #{inspect name}" do
       name = unquote(Macro.escape(name))
       {:ok, _} = ConCache.start_link([], name: name)
