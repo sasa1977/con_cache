@@ -334,7 +334,7 @@ defmodule ConCacheTest do
   for name <- [:cache, {:global, :cache}, {:via, :global, :cache}] do
     test "registration #{inspect name}" do
       name = unquote(Macro.escape(name))
-      ConCache.start_link([], name: name)
+      {:ok, _} = ConCache.start_link([], name: name)
       ConCache.put(name, :a, 1)
       assert ConCache.get(name, :a) == 1
     end

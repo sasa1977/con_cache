@@ -19,12 +19,12 @@ defmodule ConCache.Owner do
   def cache({:global, name}), do: cache({:via, :global, name})
   def cache({:via, module, name}), do: cache(module.whereis_name(name))
   def cache(pid) when is_pid(pid) do
-    [{^pid, cache}] = Registry.lookup(ConCache, pid)
+    [{_, cache}] = Registry.lookup(ConCache, pid)
     cache
   end
 
-  defstart start_link(options \\ []), gen_server_opts: :runtime
-  defstart start(options \\ []), gen_server_opts: :runtime do
+  defstart start_link(options \\ [])
+  defstart start(options \\ []) do
     ets = create_ets(options[:ets_options] || [])
     check_ets(ets)
 
@@ -32,7 +32,7 @@ defmodule ConCache.Owner do
     ttl_manager = if Map.get(state, :ttl_check) != nil, do: self()
 
     cache = %ConCache{
-      owner_pid: self(),
+      owner_pid: parent_process(),
       ets: ets,
       ttl_manager: ttl_manager,
       ttl: options[:ttl] || 0,
@@ -48,7 +48,7 @@ defmodule ConCache.Owner do
         |> List.to_tuple()
     }
 
-    {:ok, _} = Registry.register(ConCache, self(), cache)
+    {:ok, _} = Registry.register(ConCache, parent_process(), cache)
 
     initial_state(state)
   end
@@ -89,12 +89,11 @@ defmodule ConCache.Owner do
   end
 
   defp start_ttl_loop(options) do
-    me = self()
     case options[:ttl_check] do
       ttl_check when is_integer(ttl_check) and ttl_check > 0 ->
         %__MODULE__{
           ttl_check: ttl_check,
-          on_expire: &ConCache.delete(me, &1),
+          on_expire: &ConCache.delete(parent_process(), &1),
           pending: :ets.new(:ttl_manager_pending, [:private, :bag]),
           ttls: :ets.new(:ttl_manager_ttls, [:private, :set]),
           max_time: (1 <<< (options[:time_size] || 16)) - 1
@@ -235,5 +234,12 @@ defmodule ConCache.Owner do
   defp currently_pending(%__MODULE__{pending: pending, current_time: current_time}) do
     :ets.lookup(pending, current_time)
     |> Enum.map(&elem(&1, 1))
+  end
+
+  defp parent_process() do
+    case hd(Process.get(:"$ancestors")) do
+      pid when is_pid(pid) -> pid
+      atom when is_atom(atom) -> Process.whereis(atom)
+    end
   end
 end

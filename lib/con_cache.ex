@@ -116,17 +116,12 @@ defmodule ConCache do
   """
   @spec start_link(options, GenServer.options) :: GenServer.on_start
   def start_link(options \\ [], gen_server_options \\ []) do
-    Owner.start_link(options, gen_server_options)
-  end
-
-  @doc """
-  Starts the server.
-
-  See `start_link/2` for more details.
-  """
-  @spec start(options, GenServer.options) :: GenServer.on_start
-  def start(options \\ [], gen_server_options \\ []) do
-    Owner.start(options, gen_server_options)
+    Supervisor.start_link(
+      [
+        Supervisor.Spec.worker(Owner, [options])
+      ],
+      [strategy: :one_for_all] ++ Keyword.take(gen_server_options, [:name])
+    )
   end
 
   @doc """
