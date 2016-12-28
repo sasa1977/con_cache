@@ -1,3 +1,16 @@
+# v0.12.0
+
+## Breaking changes
+
+- Elixir 1.4 is now required.
+- The process started through `ConCache.start_link` is a supervisor (previously it was a worker). Make sure to adapt your supervisor specifications accordingly.
+- `ConCache.start` has been removed.
+
+## Improvements
+
+- You can now use `bag`, and `duplicate_bag` (thanks to [fcevado](https://github.com/fcevado) for implementing it).
+- Lock processes are now specific for each cache instance (previously they were shared between all of them). Multiple cache instances in the same system will not block each other.
+
 # v0.11.1
 
 - Fix warnings on 1.3.0
