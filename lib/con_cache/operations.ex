@@ -2,20 +2,18 @@ defmodule ConCache.Operations do
   @moduledoc false
   def ets(%ConCache{ets: ets}), do: ets
 
-  def isolated(cache, key, timeout \\ nil, fun) do
-    ConCache.BalancedLock.exec(cache_key(cache, key), timeout || cache.acquire_lock_timeout, fun)
-  end
+  def isolated(cache, key, timeout \\ nil, fun), do:
+    ConCache.Lock.exec(lock_pid(cache, key), key, timeout || cache.acquire_lock_timeout, fun)
 
   def try_isolated(cache, key, timeout \\ nil, on_success) do
-    case ConCache.BalancedLock.try_exec(cache_key(cache, key), timeout || cache.acquire_lock_timeout, on_success) do
+    case ConCache.Lock.try_exec(lock_pid(cache, key), key, timeout || cache.acquire_lock_timeout, on_success) do
       {:lock, :not_acquired} -> {:error, :locked}
       response -> {:ok, response}
     end
   end
 
-  defp cache_key(%ConCache{owner_pid: pid}, key) do
-    {pid, key}
-  end
+  defp lock_pid(cache, key), do:
+    elem(cache.lock_pids, :erlang.phash2(key, tuple_size(cache.lock_pids)))
 
   def get(cache, key) do
     case fetch(cache, key) do

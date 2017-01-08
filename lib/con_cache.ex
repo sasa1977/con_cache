@@ -42,7 +42,8 @@ defmodule ConCache do
   alias ConCache.Operations
 
   defstruct [
-    :owner_pid, :ets, :ttl_manager, :ttl, :acquire_lock_timeout, :callback, :touch_on_read
+    :owner_pid, :ets, :ttl_manager, :ttl, :acquire_lock_timeout, :callback, :touch_on_read,
+    :lock_pids
   ]
 
   @type t :: pid | atom | {:global, any} | {:via, atom, any}
@@ -113,19 +114,15 @@ defmodule ConCache do
   reduce your memory consumption, but could also cause performance penalties.
   Higher values put less pressure on processing, but item expiry is less precise.
   """
-  @spec start_link(options, GenServer.options) :: GenServer.on_start
-  def start_link(options \\ [], gen_server_options \\ []) do
-    Owner.start_link(options, gen_server_options)
-  end
-
-  @doc """
-  Starts the server.
-
-  See `start_link/2` for more details.
-  """
-  @spec start(options, GenServer.options) :: GenServer.on_start
-  def start(options \\ [], gen_server_options \\ []) do
-    Owner.start(options, gen_server_options)
+  @spec start_link(options, [name: GenServer.name]) :: Supervisor.on_start
+  def start_link(options \\ [], sup_opts \\ []) do
+    Supervisor.start_link(
+      [
+        Supervisor.Spec.supervisor(ConCache.LockSupervisor, [System.schedulers_online()]),
+        Supervisor.Spec.worker(Owner, [options])
+      ],
+      [strategy: :one_for_all] ++ Keyword.take(sup_opts, [:name])
+    )
   end
 
   @doc """
