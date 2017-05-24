@@ -293,7 +293,7 @@ In the next discrete step, the owner process first applies the pending ttl set r
 
 This approach allows the owner process to do fairly small amount of work in each discrete step.
 
-### Consqeuences
+### Consequences
 
 Due to the locking and ttl algorithms just described, some additional processing will occur in the owner processes. The work is fairly optimized, but I didn't invest too much time in it.
 For example, lock processes currently use pure functional structures such as `HashDict` and `:gb_trees`. This could probably be replaced with internal ETS table to make it work faster, but I didn't try it.
