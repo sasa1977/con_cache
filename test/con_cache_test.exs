@@ -339,4 +339,9 @@ defmodule ConCacheTest do
       assert ConCache.get(name, :a) == 1
     end
   end
+
+  test "non-existing name" do
+    assert catch_exit(ConCache.put(:non_existing, :a, 1)) == :noproc
+    assert catch_exit(ConCache.put({:global, :non_existing}, :a, 1)) == :noproc
+  end
 end

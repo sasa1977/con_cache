@@ -14,6 +14,8 @@ defmodule ConCache.Owner do
     pending_ttl_sets: Map.new
   ]
 
+  def cache(nil), do: exit(:noproc)
+  def cache(:undefined), do: exit(:noproc)
   def cache({:local, local}) when is_atom(local), do: cache(local)
   def cache(local) when is_atom(local), do: cache(Process.whereis(local))
   def cache({:global, name}), do: cache({:via, :global, name})
