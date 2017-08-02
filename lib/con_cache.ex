@@ -187,6 +187,7 @@ defmodule ConCache do
   The updater lambda must return one of the following:
 
     - `{:ok, value}` - causes the value to be stored into the table
+    - `{:error, reason}` - the value won't be stored and `{:error, reason}` will be returned
 
   """
   @spec update(t, key, update_fun) :: :ok | {:error, any}
