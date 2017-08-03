@@ -1,3 +1,8 @@
+# v0.12.1
+
+- Relaxed version requirement for Elixir
+- Proper early exit when the cache doesn't exist
+
 # v0.12.0
 
 ## Breaking changes
