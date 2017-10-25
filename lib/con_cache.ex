@@ -7,6 +7,8 @@ defmodule ConCache.Item do
 end
 
 defmodule ConCache do
+  require Logger
+
   @moduledoc """
   Implements an ETS based key/value storage with following additional features:
 
@@ -115,7 +117,18 @@ defmodule ConCache do
   Higher values put less pressure on processing, but item expiry is less precise.
   """
   @spec start_link(options, [name: GenServer.name]) :: Supervisor.on_start
-  def start_link(options \\ [], sup_opts \\ []) do
+  def start_link(options, sup_opts \\ []) do
+    case {Keyword.fetch(options, :ttl), Keyword.fetch(options, :ttl_check)} do
+      {{:ok, false}, {:ok, _b}} -> Logger.error "ConCache ttl is false and ttl_check is set. Either remove your ttl_check (to remove ttl) or set your ttl to a time"
+      {{:ok, false}, _}         -> start_link_aux(options, sup_opts) # no expiry
+      {{:ok, _a},    {:ok, _b}} -> start_link_aux(options, sup_opts) # ttl expiry
+      {{:ok, _a},    _}         -> Logger.error "ConCache ttl_check must be supplied"
+      {:error,       {:ok, _b}} -> Logger.error "ConCache ttl must be supplied"
+      _                         -> Logger.error "ConCache ttl must be set or explicitly set as false (no expiry)"
+    end
+  end
+
+  defp start_link_aux(options, sup_opts \\ []) do
     Supervisor.start_link(
       [
         Supervisor.Spec.supervisor(ConCache.LockSupervisor, [System.schedulers_online()]),
