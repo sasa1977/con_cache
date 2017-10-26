@@ -10,27 +10,17 @@ defmodule ConCacheTest do
   end
 
   test "no error when ttl options are valid" do
-    assert capture_log([level: :error], fn ->
-      ConCache.start_link([ttl: false])
-     end) =~ ""
-
-    assert capture_log([level: :error], fn ->
-      ConCache.start_link([ttl: :timer.seconds(1), ttl_check: :timer.seconds(1)])
-     end) =~ ""
+    assert {:ok, _} = ConCache.start_link([ttl: false])
+    assert {:ok, _} = ConCache.start_link([ttl: :timer.seconds(1), ttl_check: :timer.seconds(1)])
   end
 
   test "error when ttl options are invalid" do
-    assert capture_log([level: :error], fn ->
-      ConCache.start_link([ttl: :timer.seconds(1)])
-    end) =~ "ConCache ttl_check must be supplied"
-
-    assert capture_log([level: :error], fn ->
-      ConCache.start_link([ttl_check: :timer.seconds(1)])
-    end) =~ "ConCache ttl must be supplied"
-
-    assert capture_log([level: :error], fn ->
-      ConCache.start_link([ttl: false, ttl_check: :timer.seconds(1)])
-    end) =~ "ConCache ttl is false and ttl_check is set. Either remove your ttl_check (to remove ttl) or set your ttl to a time"
+    assert {:error, "ConCache ttl_check must be supplied"} = ConCache.start_link([ttl: :timer.seconds(1)])
+    assert {:error, "ConCache ttl must be supplied"} = ConCache.start_link([ttl_check: :timer.seconds(1)])
+    assert {
+      :error,
+      "ConCache ttl is false and ttl_check is set. Either remove your ttl_check (to remove ttl) or set your ttl to a time"
+    } = ConCache.start_link([ttl: false, ttl_check: :timer.seconds(1)])
   end
 
   test "put" do
