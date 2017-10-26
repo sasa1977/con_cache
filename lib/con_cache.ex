@@ -129,16 +129,12 @@ defmodule ConCache do
     end
   end
 
-  defp validate_ttl(ttl, ttl_check) do
-    case {ttl, ttl_check} do
-      {nil,   :error}    -> {:error, "ConCache ttl must be set or explicitly set as false (no expiry)"}
-      {false, nil}       -> :ok # no expiry
-      {false, _ttl_check}-> {:error, "ConCache ttl is false and ttl_check is set. Either remove your ttl_check (to remove ttl) or set your ttl to a time"}
-      {nil,   _ttl_check}-> {:error, "ConCache ttl must be supplied"}
-      {_ttl,  nil}       -> {:error, "ConCache ttl_check must be supplied"}
-      {_ttl,  _ttl_check}-> :ok # ttl expiry
-    end
-  end
+  defp validate_ttl(nil, :error), do: {:error, "ConCache ttl must be set or explicitly set as false (no expiry)"}
+  defp validate_ttl(false, nil), do: :ok
+  defp validate_ttl(false, _ttl_check), do: {:error, "ConCache ttl is false and ttl_check is set. Either remove your ttl_check (to remove ttl) or set your ttl to a time"}
+  defp validate_ttl(nil, _ttl_check), do: {:error, "ConCache ttl must be supplied"}
+  defp validate_ttl(_ttl, nil), do: {:error, "ConCache ttl_check must be supplied"}
+  defp validate_ttl(_ttl, _ttl_check), do: :ok
 
   @doc """
   Returns the ets table managed by the cache.
