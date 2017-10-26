@@ -118,7 +118,7 @@ defmodule ConCache do
   """
   @spec start_link(options, [name: GenServer.name]) :: Supervisor.on_start
   def start_link(options, sup_opts \\ []) do
-    with :ok <- validate_ttl(options[:ttl], Keyword.fetch(options, :ttl_check)) do
+    with :ok <- validate_ttl(options[:ttl], options[:ttl_check]) do
       Supervisor.start_link(
         [
           Supervisor.Spec.supervisor(ConCache.LockSupervisor, [System.schedulers_online()]),
@@ -131,12 +131,12 @@ defmodule ConCache do
 
   defp validate_ttl(ttl, ttl_check) do
     case {ttl, ttl_check} do
-      {false, {:ok, _}}   -> {:error, "ConCache ttl is false and ttl_check is set. Either remove your ttl_check (to remove ttl) or set your ttl to a time"}
-      {nil,   :error}     -> {:error, "ConCache ttl must be set or explicitly set as false (no expiry)"}
-      {nil,   {:ok, _}}   -> {:error, "ConCache ttl must be supplied"}
-      {false, _ttl_check} -> :ok # no expiry
-      {_ttl,  :error}     -> {:error, "ConCache ttl_check must be supplied"}
-      {_ttl,  _ttl_check} -> :ok # ttl expiry
+      {nil,   :error}    -> {:error, "ConCache ttl must be set or explicitly set as false (no expiry)"}
+      {false, nil}       -> :ok # no expiry
+      {false, _ttl_check}-> {:error, "ConCache ttl is false and ttl_check is set. Either remove your ttl_check (to remove ttl) or set your ttl to a time"}
+      {nil,   _ttl_check}-> {:error, "ConCache ttl must be supplied"}
+      {_ttl,  nil}       -> {:error, "ConCache ttl_check must be supplied"}
+      {_ttl,  _ttl_check}-> :ok # ttl expiry
     end
   end
 
