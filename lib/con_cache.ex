@@ -118,24 +118,26 @@ defmodule ConCache do
   """
   @spec start_link(options, [name: GenServer.name]) :: Supervisor.on_start
   def start_link(options, sup_opts \\ []) do
-    case {Keyword.fetch(options, :ttl), Keyword.fetch(options, :ttl_check)} do
-      {{:ok, false}, {:ok, _b}} -> Logger.error "ConCache ttl is false and ttl_check is set. Either remove your ttl_check (to remove ttl) or set your ttl to a time"
-      {{:ok, false}, _}         -> start_link_aux(options, sup_opts) # no expiry
-      {{:ok, _a},    {:ok, _b}} -> start_link_aux(options, sup_opts) # ttl expiry
-      {{:ok, _a},    _}         -> Logger.error "ConCache ttl_check must be supplied"
-      {:error,       {:ok, _b}} -> Logger.error "ConCache ttl must be supplied"
-      _                         -> Logger.error "ConCache ttl must be set or explicitly set as false (no expiry)"
+    with :ok <- validate_ttl(options[:ttl], Keyword.fetch(options, :ttl_check)) do
+      Supervisor.start_link(
+        [
+          Supervisor.Spec.supervisor(ConCache.LockSupervisor, [System.schedulers_online()]),
+          Supervisor.Spec.worker(Owner, [options])
+        ],
+        [strategy: :one_for_all] ++ Keyword.take(sup_opts, [:name])
+      )
     end
   end
 
-  defp start_link_aux(options, sup_opts \\ []) do
-    Supervisor.start_link(
-      [
-        Supervisor.Spec.supervisor(ConCache.LockSupervisor, [System.schedulers_online()]),
-        Supervisor.Spec.worker(Owner, [options])
-      ],
-      [strategy: :one_for_all] ++ Keyword.take(sup_opts, [:name])
-    )
+  defp validate_ttl(ttl, ttl_check) do
+    case {ttl, ttl_check} do
+      {false, {:ok, _}}   -> {:error, "ConCache ttl is false and ttl_check is set. Either remove your ttl_check (to remove ttl) or set your ttl to a time"}
+      {nil,   :error}     -> {:error, "ConCache ttl must be set or explicitly set as false (no expiry)"}
+      {nil,   {:ok, _}}   -> {:error, "ConCache ttl must be supplied"}
+      {false, _ttl_check} -> :ok # no expiry
+      {_ttl,  :error}     -> {:error, "ConCache ttl_check must be supplied"}
+      {_ttl,  _ttl_check} -> :ok # ttl expiry
+    end
   end
 
   @doc """
