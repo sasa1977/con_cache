@@ -1,11 +1,8 @@
 defmodule ConCacheTest do
   use ExUnit.Case, async: false
-  import ExUnit.CaptureLog
-
-  @opts [ttl: false]
 
   test "initial" do
-    {:ok, cache} = ConCache.start_link(@opts)
+    {:ok, cache} = start_cache()
     assert ConCache.get(cache, :a) == nil
   end
 
@@ -24,27 +21,27 @@ defmodule ConCacheTest do
   end
 
   test "put" do
-    {:ok, cache} = ConCache.start_link(@opts)
+    {:ok, cache} = start_cache()
     assert ConCache.put(cache, :a, 1) == :ok
     assert ConCache.get(cache, :a) == 1
   end
 
   test "multiple put on bag" do
-    {:ok, cache} = ConCache.start_link(with_opts ets_options: [:bag])
+    {:ok, cache} = start_cache(ets_options: [:bag])
     ConCache.put(cache, :a, 1)
     ConCache.put(cache, :a, 2)
     assert ConCache.get(cache, :a) == [1,2]
   end
 
   test "multiple put on duplicate_bag" do
-    {:ok, cache} = ConCache.start_link(with_opts ets_options: [:duplicate_bag])
+    {:ok, cache} = start_cache(ets_options: [:duplicate_bag])
     ConCache.put(cache, :a, 1)
     ConCache.put(cache, :a, 1)
     assert ConCache.get(cache, :a) == [1,1]
   end
 
   test "insert_new" do
-    {:ok, cache} = ConCache.start_link(@opts)
+    {:ok, cache} = start_cache()
     assert ConCache.insert_new(cache, :b, 2) == :ok
     assert ConCache.get(cache, :b) == 2
     assert ConCache.insert_new(cache, :b, 3) == {:error, :already_exists}
@@ -52,7 +49,7 @@ defmodule ConCacheTest do
   end
 
   test "insert_new after multiple put on bag" do
-    {:ok, cache} = ConCache.start_link(with_opts ets_options: [:bag])
+    {:ok, cache} = start_cache(ets_options: [:bag])
     ConCache.put(cache, :a, 1)
     ConCache.put(cache, :a, 2)
     ConCache.insert_new(cache, :a, 3)
@@ -60,7 +57,7 @@ defmodule ConCacheTest do
   end
 
   test "insert_new after multiple put on duplicate_bag" do
-    {:ok, cache} = ConCache.start_link(with_opts ets_options: [:duplicate_bag])
+    {:ok, cache} = start_cache(ets_options: [:duplicate_bag])
     ConCache.put(cache, :a, 1)
     ConCache.put(cache, :a, 1)
     ConCache.insert_new(cache, :a, 2)
@@ -68,14 +65,14 @@ defmodule ConCacheTest do
   end
 
   test "delete" do
-    {:ok, cache} = ConCache.start_link(@opts)
+    {:ok, cache} = start_cache()
     ConCache.put(cache, :a, 1)
     assert ConCache.delete(cache, :a) == :ok
     assert ConCache.get(cache, :a) == nil
   end
 
   test "delete on bag" do
-    {:ok, cache} = ConCache.start_link(with_opts ets_options: [:bag])
+    {:ok, cache} = start_cache(ets_options: [:bag])
     ConCache.put(cache, :a, 1)
     ConCache.put(cache, :a, 2)
     assert ConCache.delete(cache, :a) == :ok
@@ -83,7 +80,7 @@ defmodule ConCacheTest do
   end
 
   test "delete on duplicate_bag" do
-    {:ok, cache} = ConCache.start_link(with_opts ets_options: [:duplicate_bag])
+    {:ok, cache} = start_cache(ets_options: [:duplicate_bag])
     ConCache.put(cache, :a, 1)
     ConCache.put(cache, :a, 1)
     assert ConCache.delete(cache, :a) == :ok
@@ -91,7 +88,7 @@ defmodule ConCacheTest do
   end
 
   test "update" do
-    {:ok, cache} = ConCache.start_link(@opts)
+    {:ok, cache} = start_cache()
     ConCache.put(cache, :a, 1)
     assert ConCache.update(cache, :a, &({:ok, &1 + 1})) == :ok
     assert ConCache.get(cache, :a) == 2
@@ -100,7 +97,7 @@ defmodule ConCacheTest do
   end
 
   test "raise when update bag" do
-    {:ok, cache} = ConCache.start_link(with_opts ets_options: [:bag])
+    {:ok, cache} = start_cache(ets_options: [:bag])
     ConCache.put(cache, :a, 1)
     assert_raise(
       ArgumentError,
@@ -110,7 +107,7 @@ defmodule ConCacheTest do
   end
 
   test "raise when update duplicate_bag" do
-    {:ok, cache} = ConCache.start_link(with_opts ets_options: [:duplicate_bag])
+    {:ok, cache} = start_cache(ets_options: [:duplicate_bag])
     ConCache.put(cache, :a, 1)
     assert_raise(
       ArgumentError,
@@ -120,7 +117,7 @@ defmodule ConCacheTest do
   end
 
   test "update_existing" do
-    {:ok, cache} = ConCache.start_link(@opts)
+    {:ok, cache} = start_cache()
     assert ConCache.update_existing(cache, :a, &({:ok, &1 + 1})) == {:error, :not_existing}
     ConCache.put(cache, :a, 1)
     assert ConCache.update_existing(cache, :a, &({:ok, &1 + 1})) == :ok
@@ -128,7 +125,7 @@ defmodule ConCacheTest do
   end
 
   test "raise when update_existing bag" do
-    {:ok, cache} = ConCache.start_link(with_opts ets_options: [:bag])
+    {:ok, cache} = start_cache(ets_options: [:bag])
     ConCache.put(cache, :a, 1)
     assert_raise(
       ArgumentError,
@@ -138,7 +135,7 @@ defmodule ConCacheTest do
   end
 
   test "raise when update_existing duplicate_bag" do
-    {:ok, cache} = ConCache.start_link(with_opts ets_options: [:duplicate_bag])
+    {:ok, cache} = start_cache(ets_options: [:duplicate_bag])
     ConCache.put(cache, :a, 1)
     assert_raise(
       ArgumentError,
@@ -148,7 +145,7 @@ defmodule ConCacheTest do
   end
 
   test "invalid update" do
-    {:ok, cache} = ConCache.start_link(@opts)
+    {:ok, cache} = start_cache()
     ConCache.put(cache, :a, 1)
     assert_raise(
       RuntimeError,
@@ -158,14 +155,14 @@ defmodule ConCacheTest do
   end
 
   test "get_or_store" do
-    {:ok, cache} = ConCache.start_link(@opts)
+    {:ok, cache} = start_cache()
     assert ConCache.get_or_store(cache, :a, fn() -> 1 end) == 1
     assert ConCache.get_or_store(cache, :a, fn() -> 2 end) == 1
     assert ConCache.get_or_store(cache, :b, fn() -> 4 end) == 4
   end
 
   test "raise when get_or_store bag" do
-    {:ok, cache} = ConCache.start_link(with_opts ets_options: [:bag])
+    {:ok, cache} = start_cache(ets_options: [:bag])
     assert_raise(
       ArgumentError,
       ~r/^This function is.*/,
@@ -174,7 +171,7 @@ defmodule ConCacheTest do
   end
 
   test "raise when get_or_store duplicate_bag" do
-    {:ok, cache} = ConCache.start_link(with_opts ets_options: [:duplicate_bag])
+    {:ok, cache} = start_cache(ets_options: [:duplicate_bag])
     assert_raise(
       ArgumentError,
       ~r/^This function is.*/,
@@ -183,14 +180,14 @@ defmodule ConCacheTest do
   end
 
   test "size" do
-    {:ok, cache} = ConCache.start_link(@opts)
+    {:ok, cache} = start_cache()
     assert ConCache.size(cache) == 0
     ConCache.put(cache, :a, "foo")
     assert ConCache.size(cache) == 1
   end
 
   test "dirty" do
-    {:ok, cache} = ConCache.start_link(@opts)
+    {:ok, cache} = start_cache()
     assert ConCache.dirty_put(cache, :a, 1) == :ok
     assert ConCache.get(cache, :a) == 1
 
@@ -216,14 +213,14 @@ defmodule ConCacheTest do
   end
 
   test "ets_options" do
-    {:ok, cache} = ConCache.start_link(with_opts ets_options: [:named_table, name: :test_name])
+    {:ok, cache} = start_cache(ets_options: [:named_table, name: :test_name])
     assert :ets.info(ConCache.ets(cache), :named_table) == true
     assert :ets.info(ConCache.ets(cache), :name) == :test_name
   end
 
   test "callback" do
     me = self()
-    {:ok, cache} = ConCache.start_link(with_opts callback: &send(me, &1))
+    {:ok, cache} = start_cache(callback: &send(me, &1))
 
     ConCache.put(cache, :a, 1)
     assert_receive {:update, ^cache, :a, 1}
@@ -310,7 +307,7 @@ defmodule ConCacheTest do
   end
 
   test "try_isolated" do
-    {:ok, cache} = ConCache.start_link(@opts)
+    {:ok, cache} = start_cache()
     spawn(fn() ->
       ConCache.isolated(cache, :a, fn() -> :timer.sleep(100) end)
     end)
@@ -323,7 +320,7 @@ defmodule ConCacheTest do
   end
 
   test "nested" do
-    {:ok, cache} = ConCache.start_link(@opts)
+    {:ok, cache} = start_cache()
     assert ConCache.isolated(cache, :a, fn() ->
       ConCache.isolated(cache, :b, fn() ->
         ConCache.isolated(cache, :c, fn() -> 1 end)
@@ -334,8 +331,8 @@ defmodule ConCacheTest do
   end
 
   test "multiple" do
-    {:ok, cache1} = ConCache.start_link(@opts)
-    {:ok, cache2} = ConCache.start_link(@opts)
+    {:ok, cache1} = start_cache()
+    {:ok, cache2} = start_cache()
     ConCache.put(cache1, :a, 1)
     ConCache.put(cache2, :b, 2)
     assert ConCache.get(cache1, :a) == 1
@@ -351,7 +348,7 @@ defmodule ConCacheTest do
   for name <- [:cache, {:global, :cache}, {:via, :global, :cache2}] do
     test "registration #{inspect name}" do
       name = unquote(Macro.escape(name))
-      {:ok, _} = ConCache.start_link(@opts, name: name)
+      {:ok, _} = start_cache([], name: name)
       ConCache.put(name, :a, 1)
       assert ConCache.get(name, :a) == 1
     end
@@ -362,7 +359,7 @@ defmodule ConCacheTest do
     assert catch_exit(ConCache.put({:global, :non_existing}, :a, 1)) == :noproc
   end
 
-  defp with_opts(keys) do
-    Keyword.merge(@opts, keys)
+  defp start_cache(opts \\ [], sup_opts \\ []) do
+    ConCache.start_link(Keyword.merge([ttl: false], opts), sup_opts)
   end
 end
