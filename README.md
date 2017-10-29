@@ -113,22 +113,22 @@ The delete callback is invoked before the item is deleted, so you still have the
 ```elixir
 supervisor(ConCache, [
   [
-    ttl_check: :timer.seconds(1),
-    ttl: :timer.seconds(5)
+    ttl_check_interval: :timer.seconds(1),
+    global_ttl: :timer.seconds(5)
   ],
   [name: :my_cache]
 ])
 ```
 
-This example sets up item expiry check every second. The default expiry for all cache items is 5 seconds. Since ttl_check interval is 1 second, the item lifetime might be at most 6 seconds.
+This example sets up item expiry check every second, and sets the global expiry for all cache items to 5 seconds. Since ttl_check_interval is 1 second, the item lifetime might be at most 6 seconds.
 
-However, the item lifetime is renewed on every modification. Reads don't extend ttl, but this can be changed when starting cache:
+However, the item lifetime is renewed on every modification. Reads don't extend global_ttl, but this can be changed when starting cache:
 
 ```elixir
 supervisor(ConCache, [
   [
-    ttl_check: :timer.seconds(1),
-    ttl: :timer.seconds(5),
+    ttl_check_interval: :timer.seconds(1),
+    global_ttl: :timer.seconds(5),
     touch_on_read: true
   ],
   [name: :my_cache]
@@ -162,9 +162,8 @@ end)
 ```
 
 If you use ttl value of 0 the item never expires.
-In addition, unless you set `ttl_check` interval, the ttl check process will not be started, and items will never expire.
 
-TTL check __is not__ based on brute force table scan, and should work reasonably fast assuming the check interval is not too small. I generally recommend `ttl_check` to be at least 1 second, possibly more, depending on the cache size and desired ttl.
+TTL check __is not__ based on brute force table scan, and should work reasonably fast assuming the check interval is not too small. I generally recommend `ttl_check_interval` to be at least 1 second, possibly more, depending on the cache size and desired ttl.
 
 ## Supervision
 
