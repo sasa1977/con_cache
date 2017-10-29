@@ -118,7 +118,7 @@ defmodule ConCache do
   """
   @spec start_link(options, [name: GenServer.name]) :: Supervisor.on_start
   def start_link(options, sup_opts \\ []) do
-    with :ok <- validate_ttl(options[:ttl], options[:ttl_check]) do
+    with :ok <- validate_ttl(options[:ttl_check], options[:ttl]) do
       Supervisor.start_link(
         [
           Supervisor.Spec.supervisor(ConCache.LockSupervisor, [System.schedulers_online()]),
@@ -129,12 +129,11 @@ defmodule ConCache do
     end
   end
 
-  defp validate_ttl(nil, :error), do: {:error, "ConCache ttl must be set or explicitly set as false (no expiry)"}
   defp validate_ttl(false, nil), do: :ok
-  defp validate_ttl(false, _ttl_check), do: {:error, "ConCache ttl is false and ttl_check is set. Either remove your ttl_check (to remove ttl) or set your ttl to a time"}
-  defp validate_ttl(nil, _ttl_check), do: {:error, "ConCache ttl must be supplied"}
-  defp validate_ttl(_ttl, nil), do: {:error, "ConCache ttl_check must be supplied"}
-  defp validate_ttl(_ttl, _ttl_check), do: :ok
+  defp validate_ttl(false, _ttl), do: {:error, "ConCache ttl_check is false and ttl is set. Either remove your ttl (to remove global ttl) or set ttl_check to a time"}
+  defp validate_ttl(nil, _ttl), do: {:error, "ConCache ttl_check must be supplied"}
+  defp validate_ttl(_ttl_check, nil), do: {:error, "ConCache ttl must be supplied"}
+  defp validate_ttl(ttl_check, ttl), do: :ok
 
   @doc """
   Returns the ets table managed by the cache.
