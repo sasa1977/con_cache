@@ -7,17 +7,18 @@ defmodule ConCacheTest do
   end
 
   test "no error when ttl options are valid" do
-    assert {:ok, _} = ConCache.start_link([ttl: false])
-    assert {:ok, _} = ConCache.start_link([ttl: :timer.seconds(1), ttl_check: :timer.seconds(1)])
+    assert {:ok, _} = ConCache.start_link([ttl_check: false])
+    assert {:ok, _} = ConCache.start_link([ttl_check: :timer.seconds(1), ttl: 0])
   end
 
   test "error when ttl options are invalid" do
+    assert {:error, "ConCache ttl_check must be supplied"} = ConCache.start_link([])
     assert {:error, "ConCache ttl_check must be supplied"} = ConCache.start_link([ttl: :timer.seconds(1)])
     assert {:error, "ConCache ttl must be supplied"} = ConCache.start_link([ttl_check: :timer.seconds(1)])
     assert {
       :error,
-      "ConCache ttl is false and ttl_check is set. Either remove your ttl_check (to remove ttl) or set your ttl to a time"
-    } = ConCache.start_link([ttl: false, ttl_check: :timer.seconds(1)])
+      "ConCache ttl_check is false and ttl is set. Either remove your ttl (to remove global ttl) or set ttl_check to a time"
+    } = ConCache.start_link([ttl: :timer.seconds(1), ttl_check: false])
   end
 
   test "put" do
@@ -360,6 +361,6 @@ defmodule ConCacheTest do
   end
 
   defp start_cache(opts \\ [], sup_opts \\ []) do
-    ConCache.start_link(Keyword.merge([ttl: false], opts), sup_opts)
+    ConCache.start_link(Keyword.merge([ttl_check: false], opts), sup_opts)
   end
 end
