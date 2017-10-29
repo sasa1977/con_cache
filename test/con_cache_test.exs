@@ -7,18 +7,18 @@ defmodule ConCacheTest do
   end
 
   test "no error when ttl options are valid" do
-    assert {:ok, _} = ConCache.start_link([ttl_check: false])
-    assert {:ok, _} = ConCache.start_link([ttl_check: :timer.seconds(1), ttl: 0])
+    assert {:ok, _} = ConCache.start_link([ttl_check_interval: false])
+    assert {:ok, _} = ConCache.start_link([ttl_check_interval: :timer.seconds(1), global_ttl: 0])
   end
 
   test "error when ttl options are invalid" do
-    assert {:error, "ConCache ttl_check must be supplied"} = ConCache.start_link([])
-    assert {:error, "ConCache ttl_check must be supplied"} = ConCache.start_link([ttl: :timer.seconds(1)])
-    assert {:error, "ConCache ttl must be supplied"} = ConCache.start_link([ttl_check: :timer.seconds(1)])
+    assert {:error, "ConCache ttl_check_interval must be supplied"} = ConCache.start_link([])
+    assert {:error, "ConCache ttl_check_interval must be supplied"} = ConCache.start_link([global_ttl: :timer.seconds(1)])
+    assert {:error, "ConCache global_ttl must be supplied"} = ConCache.start_link([ttl_check_interval: :timer.seconds(1)])
     assert {
       :error,
-      "ConCache ttl_check is false and ttl is set. Either remove your ttl (to remove global ttl) or set ttl_check to a time"
-    } = ConCache.start_link([ttl: :timer.seconds(1), ttl_check: false])
+      "ConCache ttl_check_interval is false and global_ttl is set. Either remove your global_ttl or set ttl_check_interval to a time"
+    } = ConCache.start_link([global_ttl: :timer.seconds(1), ttl_check_interval: false])
   end
 
   test "put" do
@@ -238,7 +238,7 @@ defmodule ConCacheTest do
 
   Enum.each([1, 2, 4, 8], fn(time_size) ->
     test "ttl #{time_size}" do
-      {:ok, cache} = ConCache.start_link(ttl_check: 10, ttl: 50, time_size: unquote(time_size))
+      {:ok, cache} = ConCache.start_link(ttl_check_interval: 10, global_ttl: 50, time_size: unquote(time_size))
 
       ConCache.put(cache, :a, 1)
       :timer.sleep(40)
@@ -267,7 +267,7 @@ defmodule ConCacheTest do
   end)
 
   test "no_update" do
-    {:ok, cache} = ConCache.start_link(ttl_check: 10, ttl: 50)
+    {:ok, cache} = ConCache.start_link(ttl_check_interval: 10, global_ttl: 50)
     ConCache.put(cache, :a, 1)
     :timer.sleep(40)
     ConCache.put(cache, :a, %ConCache.Item{value: 2, ttl: :no_update})
@@ -277,8 +277,8 @@ defmodule ConCacheTest do
     assert ConCache.get(cache, :a) == nil
   end
 
-  test "created key with update should have default ttl" do
-    {:ok, cache} = ConCache.start_link(ttl_check: 10, ttl: 10)
+  test "created key with update should have default global_ttl" do
+    {:ok, cache} = ConCache.start_link(ttl_check_interval: 10, global_ttl: 10)
     ConCache.update(cache, :a, fn(_) -> {:ok, 1} end)
     assert ConCache.get(cache, :a) == 1
     :timer.sleep(50)
@@ -297,7 +297,7 @@ defmodule ConCacheTest do
   end
 
   test "touch_on_read" do
-    {:ok, cache} = ConCache.start_link(ttl_check: 10, ttl: 50, touch_on_read: true)
+    {:ok, cache} = ConCache.start_link(ttl_check_interval: 10, global_ttl: 50, touch_on_read: true)
     ConCache.put(cache, :a, 1)
     :timer.sleep(40)
     assert ConCache.get(cache, :a) == 1
@@ -361,6 +361,6 @@ defmodule ConCacheTest do
   end
 
   defp start_cache(opts \\ [], sup_opts \\ []) do
-    ConCache.start_link(Keyword.merge([ttl_check: false], opts), sup_opts)
+    ConCache.start_link(Keyword.merge([ttl_check_interval: false], opts), sup_opts)
   end
 end
