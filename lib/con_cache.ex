@@ -30,7 +30,7 @@ defmodule ConCache do
     operations.
   - Operations are always performed in the caller process. Custom lock implementation
     is used to ensure synchronism. See `README.md` for more details.
-  - By default, items don't expire. You can change this with `:ttl` and `:ttl_check`
+  - By default, items don't expire. You can change this with `:global_ttl` and `:ttl_check_interval`
     options.
   - Expiry of an item is by default extended only on modifications. This can be changed
     while starting the cache.
@@ -62,11 +62,11 @@ defmodule ConCache do
     :ordered_set | :set | :bag | :duplicate_bag | {:name, atom}
 
   @type options :: [
-    {:ttl, non_neg_integer} |
+    {:global_ttl, non_neg_integer} |
     {:acquire_lock_timeout, pos_integer} |
     {:callback, callback_fun} |
     {:touch_on_read, boolean} |
-    {:ttl_check, non_neg_integer} |
+    {:ttl_check_interval, non_neg_integer} |
     {:time_size, pos_integer} |
     {:ets_options, [ets_option]}
   ]
@@ -79,10 +79,10 @@ defmodule ConCache do
   Starts the server and creates an ETS table.
 
   Options:
-    - `{:ttl_check, time_ms}` - A check interval for TTL expiry. This value is
+    - `{:ttl_check_interval, time_ms}` - A check interval for TTL expiry. This value is
       by default `nil` and you need to provide a positive integer for TTL to work.
       See below for more details on inner workings of TTL.
-    - `{:ttl, time_ms}` - The default time after which an item expires.
+    - `{:global_ttl, time_ms}` - The default time after which an item expires.
       When an item expires, it is removed from the cache. Updating the item
       extends its expiry time. By default, items never expire.
     - `{:touch_on_read, true | false}` - Controls whether read operation extends
@@ -103,22 +103,23 @@ defmodule ConCache do
     - `:write_concurrency`
     - `:read_concurrency`
 
-  ## Choosing ttl_check time
+  ## Choosing ttl_check_interval time
 
   When TTL is configured, the owner process works in discrete steps, doing
-  cleanups every `ttl_check_time` milliseconds. This approach allows the owner
+  cleanups every `ttl_check_interval` milliseconds. This approach allows the owner
   process to do fairly small amount of work in each discrete step.
 
   Assuming there's no huge system overload, an item's max lifetime is thus
-  `ttl_time + ttl_check_time` [ms], after the last item's update.
+  `global_ttl + ttl_check_interval` [ms], after the last item's update.
 
-  Thus, lower value of ttl_check time means more frequent purging which may
+  Thus, lower value of ttl_check_interval time means more frequent purging which may
   reduce your memory consumption, but could also cause performance penalties.
   Higher values put less pressure on processing, but item expiry is less precise.
   """
   @spec start_link(options, [name: GenServer.name]) :: Supervisor.on_start
   def start_link(options, sup_opts \\ []) do
-    with :ok <- validate_ttl(options[:ttl_check], options[:ttl]) do
+    options = Keyword.merge(options, [ttl: options[:global_ttl], ttl_check: options[:ttl_check_interval]])
+    with :ok <- validate_ttl(options[:ttl_check_interval], options[:global_ttl]) do
       Supervisor.start_link(
         [
           Supervisor.Spec.supervisor(ConCache.LockSupervisor, [System.schedulers_online()]),
@@ -130,10 +131,10 @@ defmodule ConCache do
   end
 
   defp validate_ttl(false, nil), do: :ok
-  defp validate_ttl(false, _ttl), do: {:error, "ConCache ttl_check is false and ttl is set. Either remove your ttl (to remove global ttl) or set ttl_check to a time"}
-  defp validate_ttl(nil, _ttl), do: {:error, "ConCache ttl_check must be supplied"}
-  defp validate_ttl(_ttl_check, nil), do: {:error, "ConCache ttl must be supplied"}
-  defp validate_ttl(ttl_check, ttl), do: :ok
+  defp validate_ttl(false, _global_ttl), do: {:error, "ConCache ttl_check_interval is false and global_ttl is set. Either remove your global_ttl or set ttl_check_interval to a time"}
+  defp validate_ttl(nil, _global_ttl), do: {:error, "ConCache ttl_check_interval must be supplied"}
+  defp validate_ttl(_ttl_check_interval, nil), do: {:error, "ConCache global_ttl must be supplied"}
+  defp validate_ttl(_ttl_check_interval, _global_ttl), do: :ok
 
   @doc """
   Returns the ets table managed by the cache.
