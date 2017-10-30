@@ -131,9 +131,9 @@ defmodule ConCache do
   end
 
   defp validate_ttl(false, nil), do: :ok
-  defp validate_ttl(false, _global_ttl), do: {:error, "ConCache ttl_check_interval is false and global_ttl is set. Either remove your global_ttl or set ttl_check_interval to a time"}
-  defp validate_ttl(nil, _global_ttl), do: {:error, "ConCache ttl_check_interval must be supplied"}
-  defp validate_ttl(_ttl_check_interval, nil), do: {:error, "ConCache global_ttl must be supplied"}
+  defp validate_ttl(false, _global_ttl), do: raise ArgumentError, "ConCache ttl_check_interval is false and global_ttl is set. Either remove your global_ttl or set ttl_check_interval to a time"
+  defp validate_ttl(nil, _global_ttl), do: raise ArgumentError, "ConCache ttl_check_interval must be supplied"
+  defp validate_ttl(_ttl_check_interval, nil), do: raise ArgumentError, "ConCache global_ttl must be supplied"
   defp validate_ttl(_ttl_check_interval, _global_ttl), do: :ok
 
   @doc """
