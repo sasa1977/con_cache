@@ -12,13 +12,18 @@ defmodule ConCacheTest do
   end
 
   test "error when ttl options are invalid" do
-    assert {:error, "ConCache ttl_check_interval must be supplied"} = ConCache.start_link([])
-    assert {:error, "ConCache ttl_check_interval must be supplied"} = ConCache.start_link([global_ttl: :timer.seconds(1)])
-    assert {:error, "ConCache global_ttl must be supplied"} = ConCache.start_link([ttl_check_interval: :timer.seconds(1)])
-    assert {
-      :error,
-      "ConCache ttl_check_interval is false and global_ttl is set. Either remove your global_ttl or set ttl_check_interval to a time"
-    } = ConCache.start_link([global_ttl: :timer.seconds(1), ttl_check_interval: false])
+    assert_raise ArgumentError, "ConCache ttl_check_interval must be supplied", fn ->
+      ConCache.start_link([])
+    end
+    assert_raise ArgumentError, "ConCache ttl_check_interval must be supplied", fn ->
+      ConCache.start_link([global_ttl: :timer.seconds(1)])
+    end
+    assert_raise ArgumentError, "ConCache global_ttl must be supplied", fn ->
+      ConCache.start_link([ttl_check_interval: :timer.seconds(1)])
+    end
+    assert_raise ArgumentError, "ConCache ttl_check_interval is false and global_ttl is set. Either remove your global_ttl or set ttl_check_interval to a time", fn ->
+      ConCache.start_link([global_ttl: :timer.seconds(1), ttl_check_interval: false])
+    end
   end
 
   test "put" do
