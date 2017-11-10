@@ -79,7 +79,7 @@ defmodule ConCache do
   Starts the server and creates an ETS table.
 
   Options:
-    - `{:ttl_check_interval, time_ms}` - A check interval for TTL expiry.
+    - `{:ttl_check_interval, time_ms | false}` - A check interval for TTL expiry.
       Provide a positive integer for TTL to work, or pass `false` to disable ttl checks.
       See below for more details on inner workings of TTL.
     - `{:global_ttl, time_ms}` - The default time after which an item expires.
