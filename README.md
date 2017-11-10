@@ -165,6 +165,17 @@ If you use ttl value of 0 the item never expires.
 
 TTL check __is not__ based on brute force table scan, and should work reasonably fast assuming the check interval is not too small. I generally recommend `ttl_check_interval` to be at least 1 second, possibly more, depending on the cache size and desired ttl.
 
+If needed, you may also pass false to `ttl_check_interval`. This effectively stops `con_cache` from checking the ttl of your items:
+
+```elixir
+supervisor(ConCache, [
+  [
+    ttl_check_interval: false
+  ],
+  [name: :my_cache]
+])
+```
+
 ## Supervision
 
 A call to `ConCache.start_link` (or `start`) creates the so called _cache owner process_. This is the process that is the owner of the underlying ETS table and also the process where TTL checks are performed. No other operation (such as get or put) runs in this process.
