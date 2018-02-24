@@ -136,6 +136,16 @@ defmodule ConCache do
   defp validate_ttl(_ttl_check_interval, nil), do: raise ArgumentError, "ConCache global_ttl must be supplied"
   defp validate_ttl(_ttl_check_interval, _global_ttl), do: :ok
 
+  @spec child_spec([options]) :: Supervisor.child_spec()
+  def child_spec([]), do: child_spec([[]])
+  def child_spec(opts) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, opts},
+      type: :supervisor
+    }
+  end
+
   @doc """
   Returns the ets table managed by the cache.
   """

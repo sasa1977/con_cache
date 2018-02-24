@@ -26,6 +26,22 @@ defmodule ConCacheTest do
     end
   end
 
+  test "default child_spec" do
+    assert %{
+      id: ConCache,
+      start: {ConCache, :start_link, [[]]},
+      type: :supervisor
+    } = ConCache.child_spec([])
+  end
+
+  test "child_spec with args" do
+    assert %{
+      id: ConCache,
+      start: {ConCache, :start_link, [[global_ttl: 50], [name: :my_cache]]},
+      type: :supervisor
+    } = ConCache.child_spec([[global_ttl: 50], [name: :my_cache]])
+  end
+
   test "put" do
     {:ok, cache} = start_cache()
     assert ConCache.put(cache, :a, 1) == :ok
