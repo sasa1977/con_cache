@@ -25,6 +25,14 @@ defmodule ConCache.Owner do
     cache
   end
 
+  def child_spec(opts) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, opts},
+      type: :worker
+    }
+  end
+
   defstart start_link(options \\ [])
   defstart start(options \\ []) do
     ets = create_ets(options[:ets_options] || [])

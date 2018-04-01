@@ -1,11 +1,19 @@
 defmodule ConCache.LockSupervisor do
   @moduledoc false
 
+  def child_spec(opts) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, opts},
+      type: :supervisor
+    }
+  end
+
   def start_link(n_partitions) do
     Supervisor.start_link(
       Enum.map(
         1..n_partitions,
-        &Supervisor.Spec.worker(ConCache.Lock, [], id: &1)
+        &Supervisor.child_spec(ConCache.Lock, id: &1)
       ),
       strategy: :one_for_all,
       max_restarts: 1,
@@ -15,6 +23,6 @@ defmodule ConCache.LockSupervisor do
 
   def lock_pids(parent_pid) do
     [{pid, _}] = Registry.lookup(ConCache, {parent_pid, __MODULE__})
-    Enum.map(Supervisor.which_children(pid), fn({_, lock_pid, _, _}) -> lock_pid end)
+    Enum.map(Supervisor.which_children(pid), fn {_, lock_pid, _, _} -> lock_pid end)
   end
 end

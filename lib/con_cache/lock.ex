@@ -15,6 +15,14 @@ defmodule ConCache.Lock do
   @spec start :: {:ok, pid}
   @spec start_link :: {:ok, pid}
 
+  def child_spec(opts) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, opts},
+      type: :worker
+    }
+  end
+
   defstart start(initial_state \\ nil), gen_server_opts: :runtime
   defstart start_link(initial_state \\ nil), gen_server_opts: :runtime do
     initial_state(initial_state || %__MODULE__{})

@@ -122,8 +122,8 @@ defmodule ConCache do
     with :ok <- validate_ttl(options[:ttl_check_interval], options[:global_ttl]) do
       Supervisor.start_link(
         [
-          Supervisor.Spec.supervisor(ConCache.LockSupervisor, [System.schedulers_online()]),
-          Supervisor.Spec.worker(Owner, [options])
+          {ConCache.LockSupervisor, [System.schedulers_online()]},
+          {Owner, [options]}
         ],
         [strategy: :one_for_all] ++ Keyword.take(sup_opts, [:name])
       )
