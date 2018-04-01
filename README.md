@@ -40,7 +40,7 @@ Typically you want to start the cache from a supervisor:
 Supervisor.start_link(
   [
     ...
-    supervisor(ConCache, [[], [name: :my_cache]])
+    {ConCache, [name: :my_cache]}
     ...
   ],
   ...
@@ -103,7 +103,7 @@ ConCache.dirty_get_or_store(:my_cache, key, fn() -> ... end)
 You can register your own function which will be invoked after an element is stored or deleted:
 
 ```elixir
-supervisor(ConCache, [[callback: fn(data) -> ... end], [name: :my_cache]])
+{ConCache, [name: :my_cache, callback: fn(data) -> ... end]}
 
 ConCache.put(:my_cache, key, value)         # fun will be called with {:update, cache_pid, key, value}
 ConCache.delete(:my_cache, key)             # fun will be called with {:delete, cache_pid, key}
@@ -114,13 +114,11 @@ The delete callback is invoked before the item is deleted, so you still have the
 ### TTL
 
 ```elixir
-supervisor(ConCache, [
-  [
-    ttl_check_interval: :timer.seconds(1),
-    global_ttl: :timer.seconds(5)
-  ],
-  [name: :my_cache]
-])
+{ConCache, [
+  name: :my_cache,
+  ttl_check_interval: :timer.seconds(1),
+  global_ttl: :timer.seconds(5)
+]}
 ```
 
 This example sets up item expiry check every second, and sets the global expiry for all cache items to 5 seconds. Since ttl_check_interval is 1 second, the item lifetime might be at most 6 seconds.
@@ -128,14 +126,12 @@ This example sets up item expiry check every second, and sets the global expiry 
 However, the item lifetime is renewed on every modification. Reads don't extend global_ttl, but this can be changed when starting cache:
 
 ```elixir
-supervisor(ConCache, [
-  [
-    ttl_check_interval: :timer.seconds(1),
-    global_ttl: :timer.seconds(5),
-    touch_on_read: true
-  ],
-  [name: :my_cache]
-])
+{ConCache, [
+  name: :my_cache,
+  ttl_check_interval: :timer.seconds(1),
+  global_ttl: :timer.seconds(5),
+  touch_on_read: true
+]}
 ```
 
 In addition, you can manually renew item's ttl:
@@ -171,12 +167,10 @@ TTL check __is not__ based on brute force table scan, and should work reasonably
 If needed, you may also pass false to `ttl_check_interval`. This effectively stops `con_cache` from checking the ttl of your items:
 
 ```elixir
-supervisor(ConCache, [
-  [
-    ttl_check_interval: false
-  ],
-  [name: :my_cache]
-])
+{ConCache, [
+  name: :my_cache,
+  ttl_check_interval: false
+]}
 ```
 
 ## Supervision
