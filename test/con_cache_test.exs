@@ -37,9 +37,9 @@ defmodule ConCacheTest do
   test "child_spec with args" do
     assert %{
       id: ConCache,
-      start: {ConCache, :start_link, [[global_ttl: 50], [name: :my_cache]]},
+      start: {ConCache, :start_link, [[global_ttl: 50, name: :my_cache]]},
       type: :supervisor
-    } = ConCache.child_spec([[global_ttl: 50], [name: :my_cache]])
+    } = ConCache.child_spec(global_ttl: 50, name: :my_cache)
   end
 
   test "put" do
@@ -370,7 +370,7 @@ defmodule ConCacheTest do
   for name <- [:cache, {:global, :cache}, {:via, :global, :cache2}] do
     test "registration #{inspect name}" do
       name = unquote(Macro.escape(name))
-      {:ok, _} = start_cache([], name: name)
+      {:ok, _} = start_cache([name: name])
       ConCache.put(name, :a, 1)
       assert ConCache.get(name, :a) == 1
     end
@@ -381,7 +381,7 @@ defmodule ConCacheTest do
     assert catch_exit(ConCache.put({:global, :non_existing}, :a, 1)) == :noproc
   end
 
-  defp start_cache(opts \\ [], sup_opts \\ []) do
-    ConCache.start_link(Keyword.merge([ttl_check_interval: false], opts), sup_opts)
+  defp start_cache(opts \\ []) do
+    ConCache.start_link(Keyword.merge([ttl_check_interval: false], opts))
   end
 end
