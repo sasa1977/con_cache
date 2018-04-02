@@ -1,4 +1,4 @@
-Code.ensure_loaded?(Hex) and Hex.start
+Code.ensure_loaded?(Hex) and Hex.start()
 
 defmodule ConCache.Mixfile do
   use Mix.Project
@@ -10,8 +10,8 @@ defmodule ConCache.Mixfile do
       app: :con_cache,
       version: @version,
       elixir: "~> 1.4",
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
       deps: deps(),
       package: [
         maintainers: ["Saša Jurić"],
@@ -19,10 +19,14 @@ defmodule ConCache.Mixfile do
         links: %{
           "Github" => "https://github.com/sasa1977/con_cache",
           "Docs" => "http://hexdocs.pm/con_cache",
-          "Changelog" => "https://github.com/sasa1977/con_cache/blob/#{@version}/CHANGELOG.md#v#{String.replace(@version, ".", "")}"
+          "Changelog" =>
+            "https://github.com/sasa1977/con_cache/blob/#{@version}/CHANGELOG.md#v#{
+              String.replace(@version, ".", "")
+            }"
         }
       ],
-      description: "ETS based key-value storage with support for row-level isolated writes, TTL auto-purge, and modification callbacks.",
+      description:
+        "ETS based key-value storage with support for row-level isolated writes, TTL auto-purge, and modification callbacks.",
       docs: [
         extras: ["README.md"],
         main: "ConCache",

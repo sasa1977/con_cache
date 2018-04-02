@@ -4,15 +4,13 @@ defmodule ConCache.Owner do
   use GenServer
   use Bitwise
 
-  defstruct [
-    ttl_check: nil,
-    current_time: 1,
-    pending: nil,
-    ttls: nil,
-    max_time: nil,
-    on_expire: nil,
-    pending_ttl_sets: Map.new
-  ]
+  defstruct ttl_check: nil,
+            current_time: 1,
+            pending: nil,
+            ttls: nil,
+            max_time: nil,
+            on_expire: nil,
+            pending_ttl_sets: Map.new()
 
   def cache(nil), do: exit(:noproc)
   def cache(:undefined), do: exit(:noproc)
@@ -20,6 +18,7 @@ defmodule ConCache.Owner do
   def cache(local) when is_atom(local), do: cache(Process.whereis(local))
   def cache({:global, name}), do: cache({:via, :global, name})
   def cache({:via, module, name}), do: cache(module.whereis_name(name))
+
   def cache(pid) when is_pid(pid) do
     [{_, cache}] = Registry.lookup(ConCache, {pid, __MODULE__})
     cache
@@ -59,19 +58,21 @@ defmodule ConCache.Owner do
   def handle_cast({:set_ttl, key, ttl}, %__MODULE__{pending_ttl_sets: pending_ttl_sets} = state) do
     {
       :noreply,
-      %__MODULE__{state | pending_ttl_sets: Map.update(pending_ttl_sets, key, ttl, &queue_ttl_set(&1, ttl))}
+      %__MODULE__{
+        state
+        | pending_ttl_sets: Map.update(pending_ttl_sets, key, ttl, &queue_ttl_set(&1, ttl))
+      }
     }
   end
 
   @impl GenServer
   def handle_info(:check_purge, state) do
     {:noreply,
-      state
-      |> apply_pending_ttls
-      |> increase_time
-      |> purge
-      |> queue_check
-    }
+     state
+     |> apply_pending_ttls
+     |> increase_time
+     |> purge
+     |> queue_check}
   end
 
   def handle_info(unknown_message, state), do: super(unknown_message, state)
@@ -82,23 +83,19 @@ defmodule ConCache.Owner do
   end
 
   defp parse_ets_options(input_options) do
-    Enum.reduce(
-      input_options,
-      %{name: :con_cache, type: :set, options: [:public]},
-        fn
-          (:named_table, acc) -> append_option(acc, :named_table)
-          (:compressed, acc) -> append_option(acc, :compressed)
-          ({:heir, _} = opt, acc) -> append_option(acc, opt)
-          ({:write_concurrency, _} = opt, acc) -> append_option(acc, opt)
-          ({:read_concurrency, _} = opt, acc) -> append_option(acc, opt)
-          (:ordered_set, acc) -> %{acc | type: :ordered_set}
-          (:set, acc) -> %{acc | type: :set}
-          (:bag, acc) -> %{acc | type: :bag}
-          (:duplicate_bag, acc) -> %{acc | type: :duplicate_bag}
-          ({:name, name}, acc) -> %{acc | name: name}
-          (other, _) -> throw({:invalid_ets_option, other})
-        end
-    )
+    Enum.reduce(input_options, %{name: :con_cache, type: :set, options: [:public]}, fn
+      :named_table, acc -> append_option(acc, :named_table)
+      :compressed, acc -> append_option(acc, :compressed)
+      {:heir, _} = opt, acc -> append_option(acc, opt)
+      {:write_concurrency, _} = opt, acc -> append_option(acc, opt)
+      {:read_concurrency, _} = opt, acc -> append_option(acc, opt)
+      :ordered_set, acc -> %{acc | type: :ordered_set}
+      :set, acc -> %{acc | type: :set}
+      :bag, acc -> %{acc | type: :bag}
+      :duplicate_bag, acc -> %{acc | type: :duplicate_bag}
+      {:name, name}, acc -> %{acc | name: name}
+      other, _ -> throw({:invalid_ets_option, other})
+    end)
   end
 
   defp append_option(%{options: options} = ets_options, option) do
@@ -106,9 +103,11 @@ defmodule ConCache.Owner do
   end
 
   defp check_ets(ets) do
-    if (:ets.info(ets, :keypos) > 1), do: throw({:error, :invalid_keypos})
-    if (:ets.info(ets, :protection) != :public), do: throw({:error, :invalid_protection})
-    if (not (:ets.info(ets, :type) in [:set, :ordered_set, :bag, :duplicate_bag])), do: throw({:error, :invalid_type})
+    if :ets.info(ets, :keypos) > 1, do: throw({:error, :invalid_keypos})
+    if :ets.info(ets, :protection) != :public, do: throw({:error, :invalid_protection})
+
+    if not (:ets.info(ets, :type) in [:set, :ordered_set, :bag, :duplicate_bag]),
+      do: throw({:error, :invalid_type})
   end
 
   defp start_ttl_loop(options) do
@@ -123,7 +122,8 @@ defmodule ConCache.Owner do
         }
         |> queue_check
 
-      _ -> %__MODULE__{ttl_check: nil}
+      _ ->
+        %__MODULE__{ttl_check: nil}
     end
   end
 
@@ -131,11 +131,11 @@ defmodule ConCache.Owner do
   defp queue_ttl_set(_, new_ttl), do: new_ttl
 
   defp apply_pending_ttls(%__MODULE__{pending_ttl_sets: pending_ttl_sets} = state) do
-    Enum.each(pending_ttl_sets, fn({key, ttl}) ->
+    Enum.each(pending_ttl_sets, fn {key, ttl} ->
       do_set_ttl(state, key, ttl)
     end)
 
-    %__MODULE__{state | pending_ttl_sets: Map.new}
+    %__MODULE__{state | pending_ttl_sets: Map.new()}
   end
 
   defp do_set_ttl(state, key, :renew) do
@@ -173,9 +173,8 @@ defmodule ConCache.Owner do
 
   defp store_ttl(state, _, 0), do: state
 
-  defp store_ttl(%__MODULE__{pending: pending, ttls: ttls} = state, key, ttl) when(
-    is_integer(ttl) and ttl > 0
-  ) do
+  defp store_ttl(%__MODULE__{pending: pending, ttls: ttls} = state, key, ttl)
+       when is_integer(ttl) and ttl > 0 do
     expiry_time = expiry_time(state, ttl)
     :ets.insert(ttls, {key, {expiry_time, ttl}})
     :ets.insert(pending, {expiry_time, key})
@@ -184,11 +183,13 @@ defmodule ConCache.Owner do
   defp expiry_time(%__MODULE__{current_time: current_time, ttl_check: ttl_check}, ttl) do
     steps = ttl / ttl_check
     isteps = trunc(steps)
-    isteps = if steps > isteps do
-      isteps + 1
-    else
-      isteps
-    end
+
+    isteps =
+      if steps > isteps do
+        isteps + 1
+      else
+        isteps
+      end
 
     current_time + 1 + isteps
   end
@@ -211,7 +212,8 @@ defmodule ConCache.Owner do
   defp normalize_pending(%__MODULE__{current_time: current_time, pending: pending}) do
     all_pending = :ets.tab2list(pending)
     :ets.delete_all_objects(pending)
-    Enum.each(all_pending, fn({time, value}) ->
+
+    Enum.each(all_pending, fn {time, value} ->
       :ets.insert(pending, {time - current_time - 1, value})
     end)
   end
@@ -219,16 +221,25 @@ defmodule ConCache.Owner do
   defp normalize_ttls(%__MODULE__{current_time: current_time, ttls: ttls}) do
     all_ttls = :ets.tab2list(ttls)
     :ets.delete_all_objects(ttls)
-    Enum.each(all_ttls, fn({key, {expiry_time, ttl}}) ->
+
+    Enum.each(all_ttls, fn {key, {expiry_time, ttl}} ->
       :ets.insert(ttls, {key, {expiry_time - current_time - 1, ttl}})
     end)
   end
 
-  defp purge(%__MODULE__{current_time: current_time, pending: pending, ttls: ttls, on_expire: on_expire} = state) do
-    Enum.each(currently_pending(state), fn(key) ->
+  defp purge(
+         %__MODULE__{
+           current_time: current_time,
+           pending: pending,
+           ttls: ttls,
+           on_expire: on_expire
+         } = state
+       ) do
+    Enum.each(currently_pending(state), fn key ->
       on_expire.(key)
       :ets.delete(ttls, key)
     end)
+
     :ets.delete(pending, current_time)
     state
   end
