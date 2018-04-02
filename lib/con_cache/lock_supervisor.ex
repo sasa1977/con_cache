@@ -1,10 +1,10 @@
 defmodule ConCache.LockSupervisor do
   @moduledoc false
 
-  def child_spec(opts) do
+  def child_spec(n_partitions) do
     %{
       id: __MODULE__,
-      start: {__MODULE__, :start_link, opts},
+      start: {__MODULE__, :start_link, [n_partitions]},
       type: :supervisor
     }
   end
