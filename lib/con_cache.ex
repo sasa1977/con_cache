@@ -18,7 +18,7 @@ defmodule ConCache do
 
   Example usage:
 
-      ConCache.start_link([], name: :my_cache)
+      ConCache.start_link(name: :my_cache)
       ConCache.put(:my_cache, :foo, 1)
       ConCache.get(:my_cache, :foo)  # 1
 
@@ -37,7 +37,7 @@ defmodule ConCache do
   - In all store operations, you can use `ConCache.Item` struct instead of naked values,
     if you need fine-grained control of item's TTL.
 
-  See `start_link/2` for more details.
+  See `start_link/1` for more details.
   """
 
   alias ConCache.Owner
@@ -62,6 +62,7 @@ defmodule ConCache do
     :ordered_set | :set | :bag | :duplicate_bag | {:name, atom}
 
   @type options :: [
+    {:name, atom} |
     {:global_ttl, non_neg_integer} |
     {:acquire_lock_timeout, pos_integer} |
     {:callback, callback_fun} |
@@ -79,6 +80,7 @@ defmodule ConCache do
   Starts the server and creates an ETS table.
 
   Options:
+    - `{:name, atom} - A name of the cache process.`
     - `{:ttl_check_interval, time_ms | false}` - A check interval for TTL expiry.
       Provide a positive integer for TTL to work, or pass `false` to disable ttl checks.
       See below for more details on inner workings of TTL.
@@ -90,6 +92,7 @@ defmodule ConCache do
     - `{:callback, callback_fun}` - If provided, this function is invoked __after__
       an item is inserted or updated, or __before__ it is deleted.
     - `{:acquire_lock_timeout, timeout_ms}` - The time a client process waits for
+    - `{:ets_options, [ets_option]` – The options for ETS process.
       the lock. Default is 5000.
 
   In addition, following ETS options are supported:
@@ -116,16 +119,16 @@ defmodule ConCache do
   reduce your memory consumption, but could also cause performance penalties.
   Higher values put less pressure on processing, but item expiry is less precise.
   """
-  @spec start_link(options, [name: GenServer.name]) :: Supervisor.on_start
-  def start_link(options, sup_opts \\ []) do
+  @spec start_link(options) :: Supervisor.on_start
+  def start_link(options) do
     options = Keyword.merge(options, [ttl: options[:global_ttl], ttl_check: options[:ttl_check_interval]])
     with :ok <- validate_ttl(options[:ttl_check_interval], options[:global_ttl]) do
       Supervisor.start_link(
         [
-          Supervisor.Spec.supervisor(ConCache.LockSupervisor, [System.schedulers_online()]),
-          Supervisor.Spec.worker(Owner, [options])
+          {ConCache.LockSupervisor, [System.schedulers_online()]},
+          {Owner, [options]}
         ],
-        [strategy: :one_for_all] ++ Keyword.take(sup_opts, [:name])
+        [strategy: :one_for_all] ++ Keyword.take(options, [:name])
       )
     end
   end
@@ -135,6 +138,15 @@ defmodule ConCache do
   defp validate_ttl(nil, _global_ttl), do: raise ArgumentError, "ConCache ttl_check_interval must be supplied"
   defp validate_ttl(_ttl_check_interval, nil), do: raise ArgumentError, "ConCache global_ttl must be supplied"
   defp validate_ttl(_ttl_check_interval, _global_ttl), do: :ok
+
+  @spec child_spec(options) :: Supervisor.child_spec()
+  def child_spec(opts) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [opts]},
+      type: :supervisor
+    }
+  end
 
   @doc """
   Returns the ets table managed by the cache.
