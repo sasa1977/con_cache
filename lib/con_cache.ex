@@ -3,7 +3,7 @@ defmodule ConCache.Item do
   This struct can be used in place of naked values to set per-item TTL values.
   """
   defstruct value: nil, ttl: 0
-  @type t :: %ConCache.Item{value: ConCache.value, ttl: pos_integer | :renew | :no_update}
+  @type t :: %ConCache.Item{value: ConCache.value(), ttl: pos_integer | :renew | :no_update}
 end
 
 defmodule ConCache do
@@ -44,7 +44,13 @@ defmodule ConCache do
   alias ConCache.Operations
 
   defstruct [
-    :owner_pid, :ets, :ttl_manager, :ttl, :acquire_lock_timeout, :callback, :touch_on_read,
+    :owner_pid,
+    :ets,
+    :ttl_manager,
+    :ttl,
+    :acquire_lock_timeout,
+    :callback,
+    :touch_on_read,
     :lock_pids
   ]
 
@@ -52,27 +58,34 @@ defmodule ConCache do
 
   @type key :: any
   @type value :: any
-  @type store_value :: value | ConCache.Item.t
+  @type store_value :: value | ConCache.Item.t()
 
-  @type callback_fun :: (({:update, pid, key, value} | {:delete, pid, key}) -> any)
+  @type callback_fun :: ({:update, pid, key, value} | {:delete, pid, key} -> any)
 
   @type ets_option ::
-    :named_table | :compressed | {:heir, pid} |
-    {:write_concurrency, boolean} | {:read_concurrency, boolean} |
-    :ordered_set | :set | :bag | :duplicate_bag | {:name, atom}
+          :named_table
+          | :compressed
+          | {:heir, pid}
+          | {:write_concurrency, boolean}
+          | {:read_concurrency, boolean}
+          | :ordered_set
+          | :set
+          | :bag
+          | :duplicate_bag
+          | {:name, atom}
 
   @type options :: [
-    {:name, atom} |
-    {:global_ttl, non_neg_integer} |
-    {:acquire_lock_timeout, pos_integer} |
-    {:callback, callback_fun} |
-    {:touch_on_read, boolean} |
-    {:ttl_check_interval, non_neg_integer | false} |
-    {:time_size, pos_integer} |
-    {:ets_options, [ets_option]}
-  ]
+          {:name, atom}
+          | {:global_ttl, non_neg_integer}
+          | {:acquire_lock_timeout, pos_integer}
+          | {:callback, callback_fun}
+          | {:touch_on_read, boolean}
+          | {:ttl_check_interval, non_neg_integer | false}
+          | {:time_size, pos_integer}
+          | {:ets_options, [ets_option]}
+        ]
 
-  @type update_fun :: ((value) -> {:ok, store_value} | {:error, any})
+  @type update_fun :: (value -> {:ok, store_value} | {:error, any})
 
   @type store_fun :: (() -> store_value)
 
@@ -119,14 +132,16 @@ defmodule ConCache do
   reduce your memory consumption, but could also cause performance penalties.
   Higher values put less pressure on processing, but item expiry is less precise.
   """
-  @spec start_link(options) :: Supervisor.on_start
+  @spec start_link(options) :: Supervisor.on_start()
   def start_link(options) do
-    options = Keyword.merge(options, [ttl: options[:global_ttl], ttl_check: options[:ttl_check_interval]])
+    options =
+      Keyword.merge(options, ttl: options[:global_ttl], ttl_check: options[:ttl_check_interval])
+
     with :ok <- validate_ttl(options[:ttl_check_interval], options[:global_ttl]) do
       Supervisor.start_link(
         [
-          {ConCache.LockSupervisor, [System.schedulers_online()]},
-          {Owner, [options]}
+          {ConCache.LockSupervisor, System.schedulers_online()},
+          {Owner, options}
         ],
         [strategy: :one_for_all] ++ Keyword.take(options, [:name])
       )
@@ -134,9 +149,20 @@ defmodule ConCache do
   end
 
   defp validate_ttl(false, nil), do: :ok
-  defp validate_ttl(false, _global_ttl), do: raise ArgumentError, "ConCache ttl_check_interval is false and global_ttl is set. Either remove your global_ttl or set ttl_check_interval to a time"
-  defp validate_ttl(nil, _global_ttl), do: raise ArgumentError, "ConCache ttl_check_interval must be supplied"
-  defp validate_ttl(_ttl_check_interval, nil), do: raise ArgumentError, "ConCache global_ttl must be supplied"
+
+  defp validate_ttl(false, _global_ttl),
+    do:
+      raise(
+        ArgumentError,
+        "ConCache ttl_check_interval is false and global_ttl is set. Either remove your global_ttl or set ttl_check_interval to a time"
+      )
+
+  defp validate_ttl(nil, _global_ttl),
+    do: raise(ArgumentError, "ConCache ttl_check_interval must be supplied")
+
+  defp validate_ttl(_ttl_check_interval, nil),
+    do: raise(ArgumentError, "ConCache global_ttl must be supplied")
+
   defp validate_ttl(_ttl_check_interval, _global_ttl), do: :ok
 
   @spec child_spec(options) :: Supervisor.child_spec()
@@ -151,7 +177,7 @@ defmodule ConCache do
   @doc """
   Returns the ets table managed by the cache.
   """
-  @spec ets(t) :: :ets.tab
+  @spec ets(t) :: :ets.tab()
   def ets(cache_id), do: Operations.ets(Owner.cache(cache_id))
 
   @doc """
@@ -168,22 +194,19 @@ defmodule ConCache do
   Stores the item into the cache.
   """
   @spec put(t, key, store_value) :: :ok
-  def put(cache_id, key, value),
-    do: Operations.put(Owner.cache(cache_id), key, value)
+  def put(cache_id, key, value), do: Operations.put(Owner.cache(cache_id), key, value)
 
   @doc """
   Returns the number of items stored in the cache.
   """
   @spec size(t) :: non_neg_integer
-  def size(cache_id),
-    do: Operations.size(Owner.cache(cache_id))
+  def size(cache_id), do: Operations.size(Owner.cache(cache_id))
 
   @doc """
   Dirty equivalent of `put/3`.
   """
   @spec dirty_put(t, key, store_value) :: :ok
-  def dirty_put(cache_id, key, value),
-    do: Operations.dirty_put(Owner.cache(cache_id), key, value)
+  def dirty_put(cache_id, key, value), do: Operations.dirty_put(Owner.cache(cache_id), key, value)
 
   @doc """
   Inserts the item into the cache unless it exists.
