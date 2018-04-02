@@ -1,7 +1,7 @@
 defmodule ConCache.Owner do
   @moduledoc false
 
-  use ExActor.Tolerant
+  use GenServer
   use Bitwise
 
   defstruct [
@@ -25,16 +25,14 @@ defmodule ConCache.Owner do
     cache
   end
 
-  def child_spec(opts) do
-    %{
-      id: __MODULE__,
-      start: {__MODULE__, :start_link, opts},
-      type: :worker
-    }
-  end
+  def start_link(options), do: GenServer.start_link(__MODULE__, options)
 
-  defstart start_link(options \\ [])
-  defstart start(options \\ []) do
+  def set_ttl(server, key, ttl), do: GenServer.cast(server, {:set_ttl, key, ttl})
+
+  def clear_ttl(server, key), do: set_ttl(server, key, 0)
+
+  @impl GenServer
+  def init(options) do
     ets = create_ets(options[:ets_options] || [])
     check_ets(ets)
 
@@ -54,8 +52,29 @@ defmodule ConCache.Owner do
 
     {:ok, _} = Registry.register(ConCache, {parent_process(), __MODULE__}, cache)
 
-    initial_state(state)
+    {:ok, state}
   end
+
+  @impl GenServer
+  def handle_cast({:set_ttl, key, ttl}, %__MODULE__{pending_ttl_sets: pending_ttl_sets} = state) do
+    {
+      :noreply,
+      %__MODULE__{state | pending_ttl_sets: Map.update(pending_ttl_sets, key, ttl, &queue_ttl_set(&1, ttl))}
+    }
+  end
+
+  @impl GenServer
+  def handle_info(:check_purge, state) do
+    {:noreply,
+      state
+      |> apply_pending_ttls
+      |> increase_time
+      |> purge
+      |> queue_check
+    }
+  end
+
+  def handle_info(unknown_message, state), do: super(unknown_message, state)
 
   defp create_ets(input_options) do
     %{name: name, type: type, options: options} = parse_ets_options(input_options)
@@ -106,16 +125,6 @@ defmodule ConCache.Owner do
 
       _ -> %__MODULE__{ttl_check: nil}
     end
-  end
-
-
-  def clear_ttl(server, key) do
-    set_ttl(server, key, 0)
-  end
-
-  defcast set_ttl(key, ttl), state: %__MODULE__{pending_ttl_sets: pending_ttl_sets} = state do
-    %__MODULE__{state | pending_ttl_sets: Map.update(pending_ttl_sets, key, ttl, &queue_ttl_set(&1, ttl))}
-    |> new_state
   end
 
   defp queue_ttl_set(existing, :renew), do: existing
@@ -188,17 +197,6 @@ defmodule ConCache.Owner do
     :erlang.send_after(ttl_check, self(), :check_purge)
     state
   end
-
-  defhandleinfo :check_purge, state: state do
-    state
-    |> apply_pending_ttls
-    |> increase_time
-    |> purge
-    |> queue_check
-    |> new_state
-  end
-
-  defhandleinfo _, do: noreply()
 
   defp increase_time(%__MODULE__{current_time: max, max_time: max} = state) do
     normalize_pending(state)

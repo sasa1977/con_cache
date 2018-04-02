@@ -126,7 +126,7 @@ defmodule ConCache do
       Supervisor.start_link(
         [
           {ConCache.LockSupervisor, [System.schedulers_online()]},
-          {Owner, [options]}
+          {Owner, options}
         ],
         [strategy: :one_for_all] ++ Keyword.take(options, [:name])
       )
