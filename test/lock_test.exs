@@ -2,18 +2,18 @@ defmodule LockTest do
   use ExUnit.Case, async: true
 
   test "basic" do
-    assert conduct_test({ConCache.Lock, ConCache.Lock.start_link}) == [{0,18},{1,22},{2,15}]
+    assert conduct_test({ConCache.Lock, ConCache.Lock.start_link(nil)}) == [{0,18},{1,22},{2,15}]
   end
 
   test "timeout" do
-    {:ok, lock} = ConCache.Lock.start_link
+    {:ok, lock} = ConCache.Lock.start_link(nil)
     spawn(fn() -> ConCache.Lock.exec(lock, :a, fn() -> :timer.sleep(100) end) end)
     :timer.sleep(10)
     assert {:timeout, _} = catch_exit(ConCache.Lock.exec(lock, :a, 1, fn() -> :ok end))
   end
 
   test "monitor" do
-    {:ok, lock} = ConCache.Lock.start_link
+    {:ok, lock} = ConCache.Lock.start_link(nil)
     pid = spawn(fn() -> ConCache.Lock.exec(lock, :a, fn() -> :timer.sleep(:infinity) end) end)
     :timer.sleep(10)
     Process.exit(pid, :kill)
@@ -21,7 +21,7 @@ defmodule LockTest do
   end
 
   test "monitor 2" do
-    {:ok, lock} = ConCache.Lock.start_link
+    {:ok, lock} = ConCache.Lock.start_link(nil)
     pid1 = spawn(fn() -> ConCache.Lock.exec(lock, :a, fn() -> :timer.sleep(:infinity) end) end)
     pid2 = spawn(fn() -> ConCache.Lock.exec(lock, :a, fn() -> :timer.sleep(:infinity) end) end)
     :timer.sleep(10)
@@ -31,7 +31,7 @@ defmodule LockTest do
   end
 
   test "try" do
-    {:ok, lock} = ConCache.Lock.start_link
+    {:ok, lock} = ConCache.Lock.start_link(nil)
     assert ConCache.Lock.try_exec(lock, :a, fn() -> 1 end) == 1
     spawn(fn() -> ConCache.Lock.try_exec(lock, :a, fn() -> :timer.sleep(100) end) end)
     :timer.sleep(20)
@@ -42,7 +42,7 @@ defmodule LockTest do
 
   test "double lock" do
     assert conduct_test(
-      {ConCache.Lock, ConCache.Lock.start_link},
+      {ConCache.Lock, ConCache.Lock.start_link(nil)},
       nil,
       fn(ets, lock, _) ->
         exec_lock(lock, 1, fn() ->
@@ -57,7 +57,7 @@ defmodule LockTest do
 
   test "multiple" do
     assert conduct_test(
-      {ConCache.Lock, ConCache.Lock.start_link},
+      {ConCache.Lock, ConCache.Lock.start_link(nil)},
       nil,
       fn(ets, lock, custom) ->
         Enum.each(1..2, fn(_) ->
@@ -72,7 +72,7 @@ defmodule LockTest do
     Logger.remove_backend(:console)
 
     assert conduct_test(
-      {ConCache.Lock, ConCache.Lock.start_link},
+      {ConCache.Lock, ConCache.Lock.start_link(nil)},
       fn
         (3) -> throw(:exit)
         _ -> :ok
@@ -86,7 +86,7 @@ defmodule LockTest do
     Logger.remove_backend(:console)
 
     assert conduct_test(
-      {ConCache.Lock, ConCache.Lock.start_link},
+      {ConCache.Lock, ConCache.Lock.start_link(nil)},
       fn
         (4) -> exit(:kill)
         _ -> :ok
