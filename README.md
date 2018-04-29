@@ -40,7 +40,7 @@ Typically you want to start the cache from a supervisor:
 Supervisor.start_link(
   [
     ...
-    {ConCache, [name: :my_cache]}
+    {ConCache, [name: :my_cache, ttl_check_interval: false]}
     ...
   ],
   ...
@@ -162,7 +162,7 @@ end)
 
 If you use ttl value of `:infinity` the item never expires.
 
-TTL check __is not__ based on brute force table scan, and should work reasonably fast assuming the check interval is not too small. I generally recommend `ttl_check_interval` to be at least 1 second, possibly more, depending on the cache size and desired ttl.
+TTL check __is not__ based on brute force table scan, and should work reasonably fast assuming the check interval is not too small. I broadly recommend `ttl_check_interval` to be at least 1 second, possibly more, depending on the cache size and desired ttl.
 
 If needed, you may also pass false to `ttl_check_interval`. This effectively stops `con_cache` from checking the ttl of your items:
 
