@@ -11,7 +11,7 @@ ConCache (Concurrent Cache) is an ETS based key/value storage with following add
 * TTL support
 * modification callbacks
 
-### The below docs are for the development version, and differ from the Hex.pm docs. 
+### The below docs are for the development version, and differ from the Hex.pm docs.
 ### Read the [hexdocs.pm](https://hexdocs.pm/con_cache/) for the live docs
 
 ## Usage in OTP applications
@@ -22,7 +22,7 @@ Setup project and app dependency in your `mix.exs`:
   ...
 
   defp deps do
-    [{:con_cache, "~> 0.12.1"}, ...]
+    [{:con_cache, "~> 0.13.0"}, ...]
   end
 
   def application do
