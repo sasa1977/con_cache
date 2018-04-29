@@ -1,3 +1,18 @@
+# v0.13.0
+
+## Breaking changes
+
+- Requires Elixir 1.5 or newer
+- The `ConCache.start_link` function takes only one argument. Previously, you needed to pass two keyword lists, which have now been unified in a single kw list. See `ConCache.start_link/1` for details.
+- The `ConCache.start_link` parameters `:ttl_check` and `:ttl` are renamed to `:ttl_check_interval` and `:global_ttl`.
+- The `:ttl_check_interval` parameter is now required. If you don't want expiry in your cache, you need to explicitly pass `ttl_check_interval: false`.
+- If the `:ttl_check_interval` option is set to a positive integer, you also need to pass the `:global_ttl` option.
+- If a cache is configured for expiry, but you want some item to not expire, you need to pass the atom `:infinity` as its TTL value (previously, it was 0).
+
+## Improvements
+
+- Added `child_spec/1`. A `ConCache` child can now be specified as `{ConCache, [name: :my_cache, ttl_check_interval: false]}`.
+
 # v0.12.1
 
 - Relaxed version requirement for Elixir
