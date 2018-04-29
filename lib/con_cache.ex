@@ -2,8 +2,12 @@ defmodule ConCache.Item do
   @moduledoc """
   This struct can be used in place of naked values to set per-item TTL values.
   """
-  defstruct value: nil, ttl: 0
-  @type t :: %ConCache.Item{value: ConCache.value(), ttl: pos_integer | :renew | :no_update}
+  defstruct value: nil, ttl: :infinity
+
+  @type t :: %ConCache.Item{
+          value: ConCache.value(),
+          ttl: pos_integer | :infinity | :renew | :no_update
+        }
 end
 
 defmodule ConCache do
@@ -97,9 +101,9 @@ defmodule ConCache do
     - `{:ttl_check_interval, time_ms | false}` - A check interval for TTL expiry.
       Provide a positive integer for TTL to work, or pass `false` to disable ttl checks.
       See below for more details on inner workings of TTL.
-    - `{:global_ttl, time_ms}` - The default time after which an item expires.
+    - `{:global_ttl, time_ms | :infinity}` - The time after which an item expires.
       When an item expires, it is removed from the cache. Updating the item
-      extends its expiry time. By default, items never expire.
+      extends its expiry time.
     - `{:touch_on_read, true | false}` - Controls whether read operation extends
       expiry of items. False by default.
     - `{:callback, callback_fun}` - If provided, this function is invoked __after__

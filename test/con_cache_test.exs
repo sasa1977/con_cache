@@ -8,7 +8,9 @@ defmodule ConCacheTest do
 
   test "no error when ttl options are valid" do
     assert {:ok, _} = ConCache.start_link(ttl_check_interval: false)
-    assert {:ok, _} = ConCache.start_link(ttl_check_interval: :timer.seconds(1), global_ttl: 0)
+
+    assert {:ok, _} =
+             ConCache.start_link(ttl_check_interval: :timer.seconds(1), global_ttl: :infinity)
   end
 
   test "error when ttl options are invalid" do
@@ -275,7 +277,7 @@ defmodule ConCacheTest do
       :timer.sleep(40)
       assert ConCache.get(cache, :a) == nil
 
-      ConCache.put(cache, :a, %ConCache.Item{value: 1, ttl: 0})
+      ConCache.put(cache, :a, %ConCache.Item{value: 1, ttl: :infinity})
       :timer.sleep(100)
       assert ConCache.get(cache, :a) == 1
 
@@ -382,6 +384,34 @@ defmodule ConCacheTest do
   test "non-existing name" do
     assert catch_exit(ConCache.put(:non_existing, :a, 1)) == :noproc
     assert catch_exit(ConCache.put({:global, :non_existing}, :a, 1)) == :noproc
+  end
+
+  test "default expiry" do
+    {:ok, cache} = start_cache(ttl_check_interval: 1, global_ttl: 1)
+    ConCache.put(cache, :key, :value)
+    :timer.sleep(10)
+    assert ConCache.get(cache, :key) == nil
+  end
+
+  test "default infinite expiry" do
+    {:ok, cache} = start_cache(ttl_check_interval: 1, global_ttl: :infinity)
+    ConCache.put(cache, :key, :value)
+    :timer.sleep(10)
+    assert ConCache.get(cache, :key) == :value
+  end
+
+  test "explicit expiry" do
+    {:ok, cache} = start_cache(ttl_check_interval: 1, global_ttl: :infinity)
+    ConCache.put(cache, :key, %ConCache.Item{value: :value, ttl: 1})
+    :timer.sleep(10)
+    assert ConCache.get(cache, :key) == nil
+  end
+
+  test "explicit infinite expiry" do
+    {:ok, cache} = start_cache(ttl_check_interval: 1, global_ttl: 1)
+    ConCache.put(cache, :key, %ConCache.Item{value: :value, ttl: :infinity})
+    :timer.sleep(10)
+    assert ConCache.get(cache, :key) == :value
   end
 
   defp start_cache(opts \\ []) do

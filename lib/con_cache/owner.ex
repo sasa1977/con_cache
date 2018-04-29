@@ -28,8 +28,6 @@ defmodule ConCache.Owner do
 
   def set_ttl(server, key, ttl), do: GenServer.cast(server, {:set_ttl, key, ttl})
 
-  def clear_ttl(server, key), do: set_ttl(server, key, 0)
-
   @impl GenServer
   def init(options) do
     ets = create_ets(options[:ets_options] || [])
@@ -42,7 +40,7 @@ defmodule ConCache.Owner do
       owner_pid: parent_process(),
       ets: ets,
       ttl_manager: ttl_manager,
-      ttl: options[:ttl] || 0,
+      ttl: options[:ttl] || :infinity,
       acquire_lock_timeout: options[:acquire_lock_timeout] || 5000,
       callback: options[:callback],
       touch_on_read: options[:touch_on_read] || false,
@@ -144,6 +142,8 @@ defmodule ConCache.Owner do
       ttl -> do_set_ttl(state, key, ttl)
     end
   end
+
+  defp do_set_ttl(state, key, :infinity), do: remove_pending(state, key)
 
   defp do_set_ttl(state, key, ttl) do
     remove_pending(state, key)

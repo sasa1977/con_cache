@@ -160,7 +160,7 @@ ConCache.update(:my_cache, key, fn(old_value) ->
 end)
 ```
 
-If you use ttl value of 0 the item never expires.
+If you use ttl value of `:infinity` the item never expires.
 
 TTL check __is not__ based on brute force table scan, and should work reasonably fast assuming the check interval is not too small. I generally recommend `ttl_check_interval` to be at least 1 second, possibly more, depending on the cache size and desired ttl.
 
