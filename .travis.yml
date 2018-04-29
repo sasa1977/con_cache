@@ -11,3 +11,4 @@ script:
   - mix docs
   - mix test
   - if [ "$CHECK_FORMAT" == "true" ]; then mix format --check-formatted; fi
+  - mix dialyzer
