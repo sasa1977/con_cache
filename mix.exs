@@ -3,7 +3,7 @@ Code.ensure_loaded?(Hex) and Hex.start()
 defmodule ConCache.Mixfile do
   use Mix.Project
 
-  @version "0.12.1"
+  @version "0.13.0"
 
   def project do
     [
@@ -42,7 +42,8 @@ defmodule ConCache.Mixfile do
 
   defp deps do
     [
-      {:ex_doc, "~> 0.14.0", only: :dev}
+      {:ex_doc, "~> 0.14.0", only: :dev},
+      {:dialyxir, "~> 0.5.0", only: :dev}
     ]
   end
 end

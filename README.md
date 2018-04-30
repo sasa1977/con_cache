@@ -11,9 +11,6 @@ ConCache (Concurrent Cache) is an ETS based key/value storage with following add
 * TTL support
 * modification callbacks
 
-### The below docs are for the development version, and differ from the Hex.pm docs. 
-### Read the [hexdocs.pm](https://hexdocs.pm/con_cache/) for the live docs
-
 ## Usage in OTP applications
 
 Setup project and app dependency in your `mix.exs`:
@@ -22,7 +19,7 @@ Setup project and app dependency in your `mix.exs`:
   ...
 
   defp deps do
-    [{:con_cache, "~> 0.12.1"}, ...]
+    [{:con_cache, "~> 0.13.0"}, ...]
   end
 
   def application do
@@ -40,7 +37,7 @@ Typically you want to start the cache from a supervisor:
 Supervisor.start_link(
   [
     ...
-    {ConCache, [name: :my_cache]}
+    {ConCache, [name: :my_cache, ttl_check_interval: false]}
     ...
   ],
   ...
@@ -160,9 +157,9 @@ ConCache.update(:my_cache, key, fn(old_value) ->
 end)
 ```
 
-If you use ttl value of 0 the item never expires.
+If you use ttl value of `:infinity` the item never expires.
 
-TTL check __is not__ based on brute force table scan, and should work reasonably fast assuming the check interval is not too small. I generally recommend `ttl_check_interval` to be at least 1 second, possibly more, depending on the cache size and desired ttl.
+TTL check __is not__ based on brute force table scan, and should work reasonably fast assuming the check interval is not too small. I broadly recommend `ttl_check_interval` to be at least 1 second, possibly more, depending on the cache size and desired ttl.
 
 If needed, you may also pass false to `ttl_check_interval`. This effectively stops `con_cache` from checking the ttl of your items:
 

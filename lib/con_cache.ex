@@ -2,8 +2,12 @@ defmodule ConCache.Item do
   @moduledoc """
   This struct can be used in place of naked values to set per-item TTL values.
   """
-  defstruct value: nil, ttl: 0
-  @type t :: %ConCache.Item{value: ConCache.value(), ttl: pos_integer | :renew | :no_update}
+  defstruct value: nil, ttl: :infinity
+
+  @type t :: %ConCache.Item{
+          value: ConCache.value(),
+          ttl: pos_integer | :infinity | :renew | :no_update
+        }
 end
 
 defmodule ConCache do
@@ -18,7 +22,7 @@ defmodule ConCache do
 
   Example usage:
 
-      ConCache.start_link(name: :my_cache)
+      ConCache.start_link(name: :my_cache, ttl_check_interval: false)
       ConCache.put(:my_cache, :foo, 1)
       ConCache.get(:my_cache, :foo)  # 1
 
@@ -30,12 +34,7 @@ defmodule ConCache do
     operations.
   - Operations are always performed in the caller process. Custom lock implementation
     is used to ensure synchronism. See `README.md` for more details.
-  - By default, items don't expire. You can change this with `:global_ttl` and `:ttl_check_interval`
-    options.
-  - Expiry of an item is by default extended only on modifications. This can be changed
-    while starting the cache.
-  - In all store operations, you can use `ConCache.Item` struct instead of naked values,
-    if you need fine-grained control of item's TTL.
+  - In this example, items don't expire. See `start_link/1` for details on how to setup expiry.
 
   See `start_link/1` for more details.
   """
@@ -94,12 +93,12 @@ defmodule ConCache do
 
   Options:
     - `{:name, atom} - A name of the cache process.`
-    - `{:ttl_check_interval, time_ms | false}` - A check interval for TTL expiry.
-      Provide a positive integer for TTL to work, or pass `false` to disable ttl checks.
-      See below for more details on inner workings of TTL.
-    - `{:global_ttl, time_ms}` - The default time after which an item expires.
+    - `{:ttl_check_interval, time_ms | false}` - Required. A check interval for TTL expiry.
+      Provide a positive integer for expiry to work, or pass `false` to disable ttl checks.
+      See below for more details on expiry.
+    - `{:global_ttl, time_ms | :infinity}` - The time after which an item expires.
       When an item expires, it is removed from the cache. Updating the item
-      extends its expiry time. By default, items never expire.
+      extends its expiry time.
     - `{:touch_on_read, true | false}` - Controls whether read operation extends
       expiry of items. False by default.
     - `{:callback, callback_fun}` - If provided, this function is invoked __after__
@@ -119,16 +118,41 @@ defmodule ConCache do
     - `:write_concurrency`
     - `:read_concurrency`
 
-  ## Choosing ttl_check_interval time
+  ## Child specification
 
-  When TTL is configured, the owner process works in discrete steps, doing
+  To insert your cache into the supervision tree, pass the child specification
+  in the shape of `{ConCache, con_cache_options}`. For example:
+
+  ```
+  {ConCache, [name: :my_cache, ttl_check_interval: false]}
+  ```
+
+  ## Expiry
+
+  To configure expiry, you need to provide positive integer for the
+  `:ttl_check_interval` option. This integer represents the millisecond interval
+  in which the expiry is performed. You also need to provide the `:global_ttl`
+  option, which represents the default TTl time for the item.
+
+  TTL of each item is by default extended only on modifications. This can be
+  changed with the `touch_on_read: true` option.
+
+  If you need a granular control of expiry per each item, you can pass a
+  `ConCache.Item` struct when storing data.
+
+  If you don't want a modification of an item to extend its TTL, you can pass a
+  `ConCache.Item` struct, with `:ttl` field set to `:no_update`.
+
+  ### Choosing ttl_check_interval time
+
+  When expiry is configured, the owner process works in discrete steps, doing
   cleanups every `ttl_check_interval` milliseconds. This approach allows the owner
   process to do fairly small amount of work in each discrete step.
 
   Assuming there's no huge system overload, an item's max lifetime is thus
   `global_ttl + ttl_check_interval` [ms], after the last item's update.
 
-  Thus, lower value of ttl_check_interval time means more frequent purging which may
+  Thus, a lower value of ttl_check_interval time means more frequent purging which may
   reduce your memory consumption, but could also cause performance penalties.
   Higher values put less pressure on processing, but item expiry is less precise.
   """
@@ -165,6 +189,7 @@ defmodule ConCache do
 
   defp validate_ttl(_ttl_check_interval, _global_ttl), do: :ok
 
+  @doc false
   @spec child_spec(options) :: Supervisor.child_spec()
   def child_spec(opts) do
     %{

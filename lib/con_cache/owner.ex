@@ -9,8 +9,7 @@ defmodule ConCache.Owner do
             pending: nil,
             ttls: nil,
             max_time: nil,
-            on_expire: nil,
-            pending_ttl_sets: Map.new()
+            on_expire: nil
 
   def cache(nil), do: exit(:noproc)
   def cache(:undefined), do: exit(:noproc)
@@ -28,8 +27,6 @@ defmodule ConCache.Owner do
 
   def set_ttl(server, key, ttl), do: GenServer.cast(server, {:set_ttl, key, ttl})
 
-  def clear_ttl(server, key), do: set_ttl(server, key, 0)
-
   @impl GenServer
   def init(options) do
     ets = create_ets(options[:ets_options] || [])
@@ -42,7 +39,7 @@ defmodule ConCache.Owner do
       owner_pid: parent_process(),
       ets: ets,
       ttl_manager: ttl_manager,
-      ttl: options[:ttl] || 0,
+      ttl: options[:ttl] || :infinity,
       acquire_lock_timeout: options[:acquire_lock_timeout] || 5000,
       callback: options[:callback],
       touch_on_read: options[:touch_on_read] || false,
@@ -55,21 +52,15 @@ defmodule ConCache.Owner do
   end
 
   @impl GenServer
-  def handle_cast({:set_ttl, key, ttl}, %__MODULE__{pending_ttl_sets: pending_ttl_sets} = state) do
-    {
-      :noreply,
-      %__MODULE__{
-        state
-        | pending_ttl_sets: Map.update(pending_ttl_sets, key, ttl, &queue_ttl_set(&1, ttl))
-      }
-    }
+  def handle_cast({:set_ttl, key, ttl}, state) do
+    handle_set_ttl(state, key, ttl)
+    {:noreply, state}
   end
 
   @impl GenServer
   def handle_info(:check_purge, state) do
     {:noreply,
      state
-     |> apply_pending_ttls
      |> increase_time
      |> purge
      |> queue_check}
@@ -127,25 +118,15 @@ defmodule ConCache.Owner do
     end
   end
 
-  defp queue_ttl_set(existing, :renew), do: existing
-  defp queue_ttl_set(_, new_ttl), do: new_ttl
-
-  defp apply_pending_ttls(%__MODULE__{pending_ttl_sets: pending_ttl_sets} = state) do
-    Enum.each(pending_ttl_sets, fn {key, ttl} ->
-      do_set_ttl(state, key, ttl)
-    end)
-
-    %__MODULE__{state | pending_ttl_sets: Map.new()}
-  end
-
-  defp do_set_ttl(state, key, :renew) do
-    case item_ttl(state, key) do
-      nil -> state
-      ttl -> do_set_ttl(state, key, ttl)
+  defp handle_set_ttl(state, key, :renew) do
+    with ttl when not is_nil(ttl) <- item_ttl(state, key) do
+      handle_set_ttl(state, key, ttl)
     end
   end
 
-  defp do_set_ttl(state, key, ttl) do
+  defp handle_set_ttl(state, key, :infinity), do: remove_pending(state, key)
+
+  defp handle_set_ttl(state, key, ttl) do
     remove_pending(state, key)
     store_ttl(state, key, ttl)
   end

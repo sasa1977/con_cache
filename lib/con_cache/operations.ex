@@ -168,12 +168,6 @@ defmodule ConCache.Operations do
     ConCache.Owner.set_ttl(ttl_manager, key, ttl)
   end
 
-  defp clear_ttl(%ConCache{ttl_manager: nil}, _), do: :ok
-
-  defp clear_ttl(%ConCache{ttl_manager: ttl_manager}, key) do
-    ConCache.Owner.clear_ttl(ttl_manager, key)
-  end
-
   defp invoke_callback(%ConCache{callback: nil}, _), do: :ok
 
   defp invoke_callback(%ConCache{callback: fun}, data) when is_function(fun) do
@@ -221,7 +215,6 @@ defmodule ConCache.Operations do
   end
 
   def dirty_delete(cache, key) do
-    clear_ttl(cache, key)
     do_delete(cache, key)
   end
 
