@@ -7,6 +7,14 @@ matrix:
       elixir: 1.6
       env:
         - CHECK_FORMAT=true
+env:
+  global:
+    - MIX_HOME=$HOME/.mix
+cache:
+  directories:
+  - $HOME/.mix
+  - deps
+  - _build
 script:
   - mix docs
   - mix test
