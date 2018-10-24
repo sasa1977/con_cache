@@ -52,8 +52,6 @@ defmodule ConCache.Lock do
     }
   end
 
-  def handle_info(other, state), do: super(other, state)
-
   @impl GenServer
   def handle_call({:try_lock, id, lock_instance}, {caller_pid, _} = from, state) do
     resource = resource(state, id)

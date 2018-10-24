@@ -66,8 +66,6 @@ defmodule ConCache.Owner do
      |> queue_check}
   end
 
-  def handle_info(unknown_message, state), do: super(unknown_message, state)
-
   defp create_ets(input_options) do
     %{name: name, type: type, options: options} = parse_ets_options(input_options)
     :ets.new(name, [type | options])
