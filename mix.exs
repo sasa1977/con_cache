@@ -42,7 +42,7 @@ defmodule ConCache.Mixfile do
 
   defp deps do
     [
-      {:ex_doc, "~> 0.14.0", only: :dev},
+      {:ex_doc, "~> 0.19.0", only: :dev},
       {:dialyxir, "~> 0.5.0", only: :dev}
     ]
   end
