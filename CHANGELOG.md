@@ -1,3 +1,7 @@
+# v0.13.1
+
+- removed a few compiler warnings
+
 # v0.13.0
 
 ## Breaking changes
