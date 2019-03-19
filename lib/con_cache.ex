@@ -104,8 +104,8 @@ defmodule ConCache do
     - `{:callback, callback_fun}` - If provided, this function is invoked __after__
       an item is inserted or updated, or __before__ it is deleted.
     - `{:acquire_lock_timeout, timeout_ms}` - The time a client process waits for
-    - `{:ets_options, [ets_option]` – The options for ETS process.
       the lock. Default is 5000.
+    - `{:ets_options, [ets_option]` – The options for ETS process.
 
   In addition, following ETS options are supported:
     - `:set` - An ETS table will be of the `:set` type (default).
