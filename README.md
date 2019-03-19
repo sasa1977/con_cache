@@ -4,12 +4,11 @@
 [![hex.pm](https://img.shields.io/hexpm/v/con_cache.svg?style=flat-square)](https://hex.pm/packages/con_cache)
 [![hexdocs.pm](https://img.shields.io/badge/docs-latest-green.svg?style=flat-square)](https://hexdocs.pm/con_cache/)
 
-
 ConCache (Concurrent Cache) is an ETS based key/value storage with following additional features:
 
-* row level synchronized writes (inserts, read/modify/write updates, deletes)
-* TTL support
-* modification callbacks
+- row level synchronized writes (inserts, read/modify/write updates, deletes)
+- TTL support
+- modification callbacks
 
 ## Usage in OTP applications
 
@@ -159,7 +158,7 @@ end)
 
 If you use ttl value of `:infinity` the item never expires.
 
-TTL check __is not__ based on brute force table scan, and should work reasonably fast assuming the check interval is not too small. I broadly recommend `ttl_check_interval` to be at least 1 second, possibly more, depending on the cache size and desired ttl.
+TTL check **is not** based on brute force table scan, and should work reasonably fast assuming the check interval is not too small. I broadly recommend `ttl_check_interval` to be at least 1 second, possibly more, depending on the cache size and desired ttl.
 
 If needed, you may also pass false to `ttl_check_interval`. This effectively stops `con_cache` from checking the ttl of your items:
 
@@ -203,7 +202,8 @@ Keep in mind that `ConCache` introduces a state to your system. Thus, when you'r
 
 1. Use different keys in each test. This could help avoiding tests compromising each other.
 
-2. Before each test, force restart the `ConCache` process. This will ensure each test runs with the empty cache.
+1. Before each test, force restart the `ConCache` process. This will ensure each test runs with the empty cache.
+
 ```elixir
 setup do
   Supervisor.terminate_child(con_cache_supervisor, ConCache)
@@ -211,9 +211,11 @@ setup do
   :ok
 end
 ```
+
 Where `con_cache_supervisor` is the supervisor from which the `ConCache` process is started.
 
-3. Fetch all keys from the `ets` table, and delete each entry:
+1. Fetch all keys from the `ets` table, and delete each entry:
+
 ```elixir
 setup do
   :my_cache
@@ -228,6 +230,7 @@ end
 ## Inner workings
 
 ### ETS table
+
 The ETS table is always public, and by default it is of _set_ type. Some ETS parameters can be changed:
 
 ```elixir
@@ -250,13 +253,15 @@ Additionally, you can override ConCache, and access ets directly:
 Of course, this completely overrides additional ConCache behavior, such as ttl, row locking and callbacks.
 
 #### Bag and Duplicate Bag
+
 Those types are now supported by ConCache but like ETS, some functions are not supported by those types. Here are the list of functions **not** supported by bag and duplicate bag type tables:
-* `update/3`
-* `dirty_update/3`
-* `update_existing/3`
-* `dirty_update_existing/3`
-* `get_or_store/3`
-* `dirty_get_or_store/3`
+
+- `update/3`
+- `dirty_update/3`
+- `update_existing/3`
+- `dirty_update_existing/3`
+- `get_or_store/3`
+- `dirty_get_or_store/3`
 
 ### Locking
 
@@ -264,7 +269,7 @@ To provide isolation, custom implementation of mutex is developed. This enables 
 
 When a modification operation is called, the ConCache first acquires the lock and then performs the operation. The acquiring is done using the pool of lock processes that reside in the ConCache supervision tree. The pool contains as many processes as there are schedulers.
 
-If the lock is not acquired in a predefined time (default = 5 seconds, alter with _acquire\_lock\_timeout_ ConCache parameter) an exception will be generated.
+If the lock is not acquired in a predefined time (default = 5 seconds, alter with _acquire_lock_timeout_ ConCache parameter) an exception will be generated.
 
 You can use explicit isolation to perform isolated reads if needed. In addition, you can use your own lock ids to implement bigger granularity:
 
