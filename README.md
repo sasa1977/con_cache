@@ -4,7 +4,6 @@
 [![hex.pm](https://img.shields.io/hexpm/v/con_cache.svg?style=flat-square)](https://hex.pm/packages/con_cache)
 [![hexdocs.pm](https://img.shields.io/badge/docs-latest-green.svg?style=flat-square)](https://hexdocs.pm/con_cache/)
 
-
 ConCache (Concurrent Cache) is an ETS based key/value storage with following additional features:
 
 * row level synchronized writes (inserts, read/modify/write updates, deletes)
@@ -73,18 +72,15 @@ ConCache.update_existing(:my_cache, key, fn(old_value) ->
   {:ok, new_value}
 end)
 
-
 # Returns existing value, or calls function and stores the result.
 # If many processes simultaneously invoke this function for the same key, the function will be
 # executed only once, with all others reading the value from cache.
 ConCache.get_or_store(:my_cache, key, fn() ->
   initial_value
 end)
-
-
 ```
 
-Dirty modifiers operate directly on ets record without trying to acquire the row lock:
+Dirty modifiers operate directly on ETS record without trying to acquire the row lock:
 
 ```elixir
 ConCache.dirty_put(:my_cache, key, value)
@@ -178,6 +174,45 @@ As you've seen from the examples above, it's your responsibility to place the ca
 
 If for some reason `:con_cache` application is terminated, all cache owner processes will be terminated as well, regardless of the fact that they do not reside in the `:con_cache` supervision tree.
 
+### Multiple caches
+
+Sometimes it can be useful to run multiple caches - say, if you need 2 caches with different global expiry values. Even though you can override ttl for each
+item individually, it might get tedious very quickly.
+
+By default it's not possible to run multiple caches under the same supervisor because child specification of each cache owner process has `id` equal to `ConCache`.
+
+However you can override default child specification and provide unique `id`:
+
+```elixir
+def start(_type, _args) do
+  Supervisor.start_link(
+    [
+      ...
+      con_cache_child_spec(:my_cache_1, 100),
+      con_cache_child_spec(:my_cache_2, 200)
+      ...
+    ],
+    ...
+  )
+end
+
+defp con_cache_child_spec(name, global_ttl) do
+  Supervisor.child_spec(
+    {
+      ConCache,
+      [
+        name: name,
+        ttl_check_interval: :timer.seconds(1),
+        global_ttl: :timer.seconds(global_ttl)
+      ]
+    },
+    id: {ConCache, name}
+  )
+end
+```
+
+See [Supervisor.child_spec/2](https://hexdocs.pm/elixir/Supervisor.html#child_spec/2-examples) for details of this technique.
+
 ## Process alias
 
 Functions `ConCache.start` and `ConCache.start_link` return standard `{:ok, pid}` result. You can interface with the cache using this pid. As mentioned, cache operations are not running through this process - the pid is just used to discover the corresponding ETS table.
@@ -204,6 +239,7 @@ Keep in mind that `ConCache` introduces a state to your system. Thus, when you'r
 1. Use different keys in each test. This could help avoiding tests compromising each other.
 
 2. Before each test, force restart the `ConCache` process. This will ensure each test runs with the empty cache.
+
 ```elixir
 setup do
   Supervisor.terminate_child(con_cache_supervisor, ConCache)
@@ -214,6 +250,7 @@ end
 Where `con_cache_supervisor` is the supervisor from which the `ConCache` process is started.
 
 3. Fetch all keys from the `ets` table, and delete each entry:
+
 ```elixir
 setup do
   :my_cache
@@ -228,6 +265,7 @@ end
 ## Inner workings
 
 ### ETS table
+
 The ETS table is always public, and by default it is of _set_ type. Some ETS parameters can be changed:
 
 ```elixir
@@ -241,7 +279,7 @@ ConCache.start_link(ets_options: [
 ])
 ```
 
-Additionally, you can override ConCache, and access ets directly:
+Additionally, you can override ConCache, and access ETS directly:
 
 ```elixir
 :ets.insert(ConCache.ets(cache), {key, value})
@@ -250,6 +288,7 @@ Additionally, you can override ConCache, and access ets directly:
 Of course, this completely overrides additional ConCache behavior, such as ttl, row locking and callbacks.
 
 #### Bag and Duplicate Bag
+
 Those types are now supported by ConCache but like ETS, some functions are not supported by those types. Here are the list of functions **not** supported by bag and duplicate bag type tables:
 * `update/3`
 * `dirty_update/3`
@@ -284,7 +323,7 @@ ConCache.try_isolated(cache, my_lock_id, fn() ->
 end)
 ```
 
-Keep in mind that these calls are isolated, but not transactional (atomic). Once something is modified, it is stored in ets regardless of whether the remaining calls succeed or fail.
+Keep in mind that these calls are isolated, but not transactional (atomic). Once something is modified, it is stored in ETS regardless of whether the remaining calls succeed or fail.
 The isolation operations can be arbitrarily nested, although I wouldn't recommend this approach.
 
 ### TTL
