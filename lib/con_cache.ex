@@ -132,7 +132,7 @@ defmodule ConCache do
   To configure expiry, you need to provide positive integer for the
   `:ttl_check_interval` option. This integer represents the millisecond interval
   in which the expiry is performed. You also need to provide the `:global_ttl`
-  option, which represents the default TTl time for the item.
+  option, which represents the default TTL time for the item.
 
   TTL of each item is by default extended only on modifications. This can be
   changed with the `touch_on_read: true` option.
