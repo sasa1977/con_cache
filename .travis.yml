@@ -1,10 +1,8 @@
 language: elixir
 matrix:
   include:
-    - otp_release: 19.0
-      elixir: 1.5
     - otp_release: 20.1
-      elixir: 1.6
+      elixir: 1.7
       env:
         - CHECK_FORMAT=true
 env:
