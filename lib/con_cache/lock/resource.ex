@@ -14,7 +14,7 @@ defmodule ConCache.Lock.Resource do
   def owner(%__MODULE__{owner: owner}), do: owner
 
   def empty?(%__MODULE__{owner: nil, pending_values: pending_values}) do
-    Map.size(pending_values) == 0
+    map_size(pending_values) == 0
   end
 
   def empty?(_), do: false
