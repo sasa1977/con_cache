@@ -1,3 +1,8 @@
+# v0.14.0
+
+- Requires Elixir 1.7 or newer
+- Added `fetch_or_store/3` and `dirty_fetch_or_store/3`
+
 # v0.13.1
 
 - removed a few compiler warnings

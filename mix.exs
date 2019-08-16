@@ -3,7 +3,7 @@ Code.ensure_loaded?(Hex) and Hex.start()
 defmodule ConCache.Mixfile do
   use Mix.Project
 
-  @version "0.13.1"
+  @version "0.14.0"
 
   def project do
     [
@@ -17,7 +17,7 @@ defmodule ConCache.Mixfile do
         maintainers: ["Saša Jurić"],
         licenses: ["MIT"],
         links: %{
-          "Github" => "https://github.com/sasa1977/con_cache",
+          "GitHub" => "https://github.com/sasa1977/con_cache",
           "Docs" => "http://hexdocs.pm/con_cache",
           "Changelog" =>
             "https://github.com/sasa1977/con_cache/blob/#{@version}/CHANGELOG.md#v#{
