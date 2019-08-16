@@ -78,6 +78,17 @@ end)
 ConCache.get_or_store(:my_cache, key, fn() ->
   initial_value
 end)
+
+# Similar to get_or_store/3 but works with :ok/:error tuples.
+# The value is cached only if the function returns an :ok tuple.
+ConCache.fetch_or_store(:my_cache, key, fn ->
+  case call_api() do
+    # The processed value will be cached and returned as an :ok tuple.
+    {:ok, data} -> {:ok, process_data(data)}
+    # The error tuple is propagated to the caller.
+    {:error, _reason} = error -> error
+  end
+end)
 ```
 
 Dirty modifiers operate directly on ETS record without trying to acquire the row lock:
@@ -89,6 +100,7 @@ ConCache.dirty_delete(:my_cache, key)
 ConCache.dirty_update(:my_cache, key, fn(old_value) -> ... end)
 ConCache.dirty_update_existing(:my_cache, key, fn(old_value) -> ... end)
 ConCache.dirty_get_or_store(:my_cache, key, fn() -> ... end)
+ConCache.dirty_fetch_or_store(:my_cache, key, fn() -> ... end)
 ```
 
 ### Callback
@@ -297,6 +309,8 @@ Those types are now supported by ConCache but like ETS, some functions are not s
 - `dirty_update_existing/3`
 - `get_or_store/3`
 - `dirty_get_or_store/3`
+- `fetch_or_store/3`
+- `dirty_fetch_or_store/3`
 
 ### Locking
 
