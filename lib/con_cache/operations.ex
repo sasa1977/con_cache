@@ -61,7 +61,8 @@ defmodule ConCache.Operations do
     raise ArgumentError, """
     This function is not supported by ets tables of #{type} type.
     update/3, dirty_update/3, update_existing/3, dirty_update_existing/3,
-    get_or_store/3 and dirty_get_or_store/3 are only supported by :set and
+    get_or_store/3, dirty_get_or_store/3, fetch_or_store/3
+    and dirty_fetch_or_store/3 are only supported by :set and
     :ordered_set types of ets tables.
     """
   end
@@ -200,6 +201,49 @@ defmodule ConCache.Operations do
           value(new_value)
 
         existing ->
+          existing
+      end
+    else
+      raise_ets_type(cache)
+    end
+  end
+
+  def fetch_or_store(cache, key, fun) do
+    if valid_ets_type?(cache) do
+      case fetch(cache, key) do
+        :error -> isolated_fetch_or_store(cache, key, fun)
+        {:ok, existing} -> {:ok, existing}
+      end
+    else
+      raise_ets_type(cache)
+    end
+  end
+
+  defp isolated_fetch_or_store(cache, key, fun) do
+    isolated(cache, key, fn ->
+      dirty_fetch_or_store(cache, key, fun)
+    end)
+  end
+
+  def dirty_fetch_or_store(cache, key, fun) do
+    if valid_ets_type?(cache) do
+      case fetch(cache, key) do
+        :error ->
+          case fun.() do
+            {:ok, new_value} ->
+              dirty_put(cache, key, new_value)
+              {:ok, value(new_value)}
+
+            {:error, _reason} = error ->
+              error
+
+            _ ->
+              raise RuntimeError, """
+              The supplied fetch_or_store_fun must return an :ok or :error tuple."
+              """
+          end
+
+        {:ok, _value} = existing ->
           existing
       end
     else

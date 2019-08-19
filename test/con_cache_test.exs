@@ -183,6 +183,8 @@ defmodule ConCacheTest do
     assert ConCache.get_or_store(cache, :a, fn -> 1 end) == 1
     assert ConCache.get_or_store(cache, :a, fn -> 2 end) == 1
     assert ConCache.get_or_store(cache, :b, fn -> 4 end) == 4
+    assert ConCache.get_or_store(cache, :c, fn -> %ConCache.Item{value: 8, ttl: 20} end) == 8
+    assert ConCache.get_or_store(cache, :c, fn -> %ConCache.Item{value: 10, ttl: 10} end) == 8
   end
 
   test "raise when get_or_store bag" do
@@ -198,6 +200,46 @@ defmodule ConCacheTest do
 
     assert_raise(ArgumentError, ~r/^This function is.*/, fn ->
       ConCache.get_or_store(cache, :a, fn -> 2 end)
+    end)
+  end
+
+  test "fetch_or_store" do
+    {:ok, cache} = start_cache()
+    assert ConCache.fetch_or_store(cache, :a, fn -> {:ok, 1} end) == {:ok, 1}
+    assert ConCache.fetch_or_store(cache, :a, fn -> {:ok, 2} end) == {:ok, 1}
+    assert ConCache.fetch_or_store(cache, :b, fn -> {:error, 4} end) == {:error, 4}
+    assert ConCache.fetch_or_store(cache, :b, fn -> {:ok, 4} end) == {:ok, 4}
+
+    assert ConCache.fetch_or_store(cache, :c, fn ->
+             {:ok, %ConCache.Item{value: 8, ttl: 20}}
+           end) == {:ok, 8}
+
+    assert ConCache.fetch_or_store(cache, :c, fn ->
+             {:ok, %ConCache.Item{value: 10, ttl: 10}}
+           end) == {:ok, 8}
+  end
+
+  test "raise when fetch_or_store_fun returns invalid term" do
+    {:ok, cache} = start_cache()
+
+    assert_raise(RuntimeError, ~r/:ok or :error/, fn ->
+      assert ConCache.fetch_or_store(cache, :a, fn -> 1 end)
+    end)
+  end
+
+  test "raise when fetch_or_store bag" do
+    {:ok, cache} = start_cache(ets_options: [:bag])
+
+    assert_raise(ArgumentError, ~r/^This function is.*/, fn ->
+      ConCache.fetch_or_store(cache, :a, fn -> {:ok, 2} end)
+    end)
+  end
+
+  test "raise when fetch_or_store duplicate_bag" do
+    {:ok, cache} = start_cache(ets_options: [:duplicate_bag])
+
+    assert_raise(ArgumentError, ~r/^This function is.*/, fn ->
+      ConCache.fetch_or_store(cache, :a, fn -> {:ok, 2} end)
     end)
   end
 
@@ -232,6 +274,13 @@ defmodule ConCacheTest do
     assert ConCache.dirty_get_or_store(cache, :a, fn -> :dummy end) == 3
     assert ConCache.dirty_get_or_store(cache, :b, fn -> 4 end) == 4
     assert ConCache.get(cache, :b) == 4
+
+    assert ConCache.put(cache, :a, 5)
+    assert ConCache.dirty_fetch_or_store(cache, :a, fn -> {:ok, :dummy} end) == {:ok, 5}
+
+    assert ConCache.delete(cache, :b)
+    assert ConCache.dirty_fetch_or_store(cache, :b, fn -> {:ok, 6} end) == {:ok, 6}
+    assert ConCache.get(cache, :b) == 6
   end
 
   test "ets_options" do

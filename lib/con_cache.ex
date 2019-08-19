@@ -88,6 +88,8 @@ defmodule ConCache do
 
   @type store_fun :: (() -> store_value)
 
+  @type fetch_or_store_fun() :: (() -> {:ok, store_value} | {:error, any})
+
   @doc """
   Starts the server and creates an ETS table.
 
@@ -304,6 +306,8 @@ defmodule ConCache do
   If the item exists in the cache, it is retrieved. Otherwise, the lambda
   function is executed and its result is stored under the given key.
 
+  The lambda may return either a plain value or `%ConCache.Item{}`.
+
   This function is not supported by `:bag` and `:duplicate_bag` ETS tables.
 
   Note: if the item is already in the cache, this function amounts to a simple get
@@ -319,6 +323,33 @@ defmodule ConCache do
   @spec dirty_get_or_store(t, key, store_fun) :: value
   def dirty_get_or_store(cache_id, key, store_fun),
     do: Operations.dirty_get_or_store(Owner.cache(cache_id), key, store_fun)
+
+  @doc """
+  Retrieves the item from the cache, or inserts the new item.
+
+  If the item exists in the cache, it is retrieved. Otherwise, the lambda
+  function is executed and its result is stored under the given key, but only if
+  it returns an `{:ok, value}` tuple. If the `{:error, reason}` tuple is returned,
+  caching is not done and the error becomes the result of the function. If the lambda
+  returns none of the above, a `RuntimeError` is raised.
+
+  The lambda may return either a plain value or `%ConCache.Item{}`.
+
+  This function is not supported by `:bag` and `:duplicate_bag` ETS tables.
+
+  Note: if the item is already in the cache, this function amounts to a simple get
+  without any locking, so you can expect it to be fairly fast.
+  """
+  @spec fetch_or_store(t, key, fetch_or_store_fun) :: {:ok, value} | {:error, any}
+  def fetch_or_store(cache_id, key, fetch_or_store_fun),
+    do: Operations.fetch_or_store(Owner.cache(cache_id), key, fetch_or_store_fun)
+
+  @doc """
+  Dirty equivalent of `fetch_or_store/3`.
+  """
+  @spec dirty_fetch_or_store(t, key, fetch_or_store_fun) :: {:ok, value} | {:error, any}
+  def dirty_fetch_or_store(cache_id, key, fetch_or_store_fun),
+    do: Operations.dirty_fetch_or_store(Owner.cache(cache_id), key, fetch_or_store_fun)
 
   @doc """
   Manually touches the item to prolongate its expiry.
