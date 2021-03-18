@@ -1,8 +1,11 @@
 # ConCache
 
 [![Build Status](https://travis-ci.org/sasa1977/con_cache.svg?branch=master)](https://travis-ci.org/sasa1977/con_cache)
-[![hex.pm](https://img.shields.io/hexpm/v/con_cache.svg?style=flat-square)](https://hex.pm/packages/con_cache)
-[![hexdocs.pm](https://img.shields.io/badge/docs-latest-green.svg?style=flat-square)](https://hexdocs.pm/con_cache/)
+[![Module Version](https://img.shields.io/hexpm/v/con_cache.svg)](https://hex.pm/packages/con_cache)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/con_cache/)
+[![Total Download](https://img.shields.io/hexpm/dt/con_cache.svg)](https://hex.pm/packages/con_cache)
+[![License](https://img.shields.io/hexpm/l/con_cache.svg)](https://github.com/sasa1977/con_cache/blob/master/LICENSE)
+[![Last Updated](https://img.shields.io/github/last-commit/sasa1977/con_cache.svg)](https://github.com/sasa1977/con_cache/commits/master)
 
 ConCache (Concurrent Cache) is an ETS based key/value storage with following additional features:
 
@@ -361,3 +364,9 @@ Due to locking and ttl inner workings, multiple copies of each key exist in memo
 ## Status
 
 ConCache has been used in production to manage several thousands of entries served to up to 4000 concurrent clients, on the load of up to 2000 reqs/sec. I don't maintain that project anymore, so I'm not aware of its current status.
+
+## Copyright and License
+
+Copyright (c) 2013 Saša Jurić
+
+Released under the MIT License, which can be found in the repository in [`LICENSE`](https://github.com/sasa1977/con_cache/blob/master/LICENSE).

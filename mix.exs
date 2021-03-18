@@ -3,6 +3,7 @@ Code.ensure_loaded?(Hex) and Hex.start()
 defmodule ConCache.Mixfile do
   use Mix.Project
 
+  @source_url "https://github.com/sasa1977/con_cache"
   @version "0.14.0"
 
   def project do
@@ -13,37 +14,49 @@ defmodule ConCache.Mixfile do
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      package: [
-        maintainers: ["Saša Jurić"],
-        licenses: ["MIT"],
-        links: %{
-          "GitHub" => "https://github.com/sasa1977/con_cache",
-          "Docs" => "http://hexdocs.pm/con_cache",
-          "Changelog" =>
-            "https://github.com/sasa1977/con_cache/blob/#{@version}/CHANGELOG.md#v#{
-              String.replace(@version, ".", "")
-            }"
-        }
-      ],
-      description:
-        "ETS based key-value storage with support for row-level isolated writes, TTL auto-purge, and modification callbacks.",
-      docs: [
-        extras: ["README.md"],
-        main: "ConCache",
-        source_url: "https://github.com/sasa1977/con_cache/",
-        source_ref: @version
-      ]
+      package: package(),
+      docs: docs()
     ]
   end
 
   def application do
-    [applications: [:logger], mod: {ConCache.Application, []}]
+    [
+      applications: [:logger],
+      mod: {ConCache.Application, []}
+    ]
   end
 
   defp deps do
     [
-      {:ex_doc, "~> 0.19.0", only: :dev},
-      {:dialyxir, "~> 0.5.0", only: :dev}
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:dialyxir, "~> 0.5.0", only: :dev, runtime: false}
+    ]
+  end
+
+  defp package do
+    [
+      description: """
+        ETS based key-value storage with support for row-level isolated writes,
+        TTL auto-purge, and modification callbacks.
+      """,
+      maintainers: ["Saša Jurić"],
+      licenses: ["MIT"],
+      links: %{
+        "Changelog" => "#{@source_url}/blob/#{@version}/CHANGELOG.md#v#{
+            String.replace(@version, ".", "")
+          }",
+        "GitHub" => @source_url
+      }
+    ]
+  end
+
+  defp docs do
+    [
+      extras: ["CHANGELOG.md", "README.md"],
+      main: "readme",
+      source_url: @source_url,
+      source_ref: @version,
+      formatters: ["html"]
     ]
   end
 end
