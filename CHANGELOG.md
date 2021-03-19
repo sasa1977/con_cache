@@ -1,15 +1,15 @@
 # Changelog
 
-## v0.14.0 - 2019-08-19
+## v0.14.0
 
 - Requires Elixir 1.7 or newer
 - Added `fetch_or_store/3` and `dirty_fetch_or_store/3`
 
-## v0.13.1 - 2019-02-26
+## v0.13.1
 
 - removed a few compiler warnings
 
-## v0.13.0 - 2018-04-30
+## v0.13.0
 
 ### Breaking changes
 
@@ -24,12 +24,12 @@
 
 - Added `child_spec/1`. A `ConCache` child can now be specified as `{ConCache, [name: :my_cache, ttl_check_interval: false]}`.
 
-## v0.12.1 - 2017-08-03
+## v0.12.1
 
 - Relaxed version requirement for Elixir
 - Proper early exit when the cache doesn't exist
 
-## v0.12.0 - 2017-01-08
+## v0.12.0
 
 ### Breaking changes
 
@@ -42,11 +42,11 @@
 - You can now use `bag`, and `duplicate_bag` (thanks to [fcevado](https://github.com/fcevado) for implementing it).
 - Lock processes are now specific for each cache instance (previously they were shared between all of them). Multiple cache instances in the same system will not block each other.
 
-## v0.11.1 - 2016-06-23
+## v0.11.1
 
 - Fix warnings on 1.3.0
 
-## v0.11.0 - 2016-02-15
+## v0.11.0
 
 ### Improvements
 - Support the avoiding prolongation of ttls when updated items through the `:no_update` ttl value in `%ConCache.Item{}`
@@ -55,22 +55,22 @@
 
 - New items inserted with `ConCache.update/3` and `ConCache.dirty_update/3` never expired.
 
-## v0.10.0 - 2016-01-06
+## v0.10.0
 
 ### Improvements
 - add `ConCache.size/1`
 
-## v0.9.0 - 2015-09-09
+## v0.9.0
 
 ### Fixes
 - Support for Elixir 1.1
 
-## v0.8.1 - 2015-07-30
+## v0.8.1
 
 ### Fixes
 - Proper unlocking of an item. Previously it was possible that a process keeps the resource locked forever if the lock attempt timed out.
 
-## v0.8.0 - 2015-06-13
+## v0.8.0
 
 ### Breaking changes
 - Removed following `ConCache` functions: `size/1`, `memory/1`, `memory_bytes/1`, `get_all/1`, `with_existing/3`
@@ -82,19 +82,19 @@
 - Fixed possible race-conditions on client process crash
 - Fixed mutual exclusion of independent caches
 
-## v0.6.1 - 2014-11-05
+## v0.6.1
 - Elixir v1.0.0
 
-## v0.5.1 - 2014-09-04
+## v0.5.1
 - bugfix: balanced lock wasn't working properly
 
-## v0.5.0 - 2014-09-02
+## v0.5.0
 - upgrade to Elixir v1.0.0-rc1
 
-## v0.4.0 - 2014-08-03
+## v0.4.0
 - upgrade to Elixir v0.15.0
 
-## v0.3.0 - 2014-07-28
+## v0.3.0
 
 With this version, ConCache is turned into a proper application that obeys OTP principles. This required some changes to the way ConCache is used.
 
