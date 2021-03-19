@@ -1,0 +1,53 @@
+name: "con_cache"
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      CACHE_VERSION: 1
+
+    strategy:
+      matrix:
+        include:
+          - elixir: 1.7.0
+            otp: 20.1
+          - elixir: 1.11.3
+            otp: 23.1
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: erlef/setup-elixir@v1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{matrix.otp}}
+
+      - name: Restore cached deps
+        uses: actions/cache@v2
+        with:
+          path: |
+            deps
+             _build
+          key: deps-${{ env.CACHE_VERSION }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ github.ref }}-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+          restore-keys: |
+            deps-${{ env.CACHE_VERSION }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ github.ref }}
+            deps-${{ env.CACHE_VERSION }}-${{ matrix.otp }}-${{ matrix.elixir }}
+
+      - run: mix deps.get
+
+      - name: Compile project
+        run: MIX_ENV=test mix compile --warnings-as-errors
+
+      - run: mix test
+
+      - if: matrix.elixir != '1.7.0'
+        run: mix format --check-formatted
+
+      - if: matrix.elixir != '1.7.0'
+        run: mix docs
+
+      - if: matrix.elixir != '1.7.0'
+        run: mix dialyzer
