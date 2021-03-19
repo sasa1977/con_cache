@@ -2,7 +2,7 @@ defmodule ConCache.Mixfile do
   use Mix.Project
 
   @source_url "https://github.com/sasa1977/con_cache"
-  @version "0.14.0"
+  @version "1.0.0"
 
   def project do
     [
