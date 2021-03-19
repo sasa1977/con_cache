@@ -42,9 +42,8 @@ defmodule ConCache.Mixfile do
       maintainers: ["Saša Jurić"],
       licenses: ["MIT"],
       links: %{
-        "Changelog" => "#{@source_url}/blob/#{@version}/CHANGELOG.md#v#{
-            String.replace(@version, ".", "")
-          }",
+        "Changelog" =>
+          "#{@source_url}/blob/#{@version}/CHANGELOG.md#v#{String.replace(@version, ".", "")}",
         "GitHub" => @source_url
       }
     ]
