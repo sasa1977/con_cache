@@ -82,6 +82,7 @@ defmodule ConCache do
           | {:ttl_check_interval, non_neg_integer | false}
           | {:time_size, pos_integer}
           | {:ets_options, [ets_option]}
+          | {:n_lock_partitions, pos_integer}
         ]
 
   @type update_fun :: (value -> {:ok, store_value} | {:error, any})
@@ -108,6 +109,8 @@ defmodule ConCache do
     - `{:acquire_lock_timeout, timeout_ms}` - The time a client process waits for
       the lock. Default is 5000.
     - `{:ets_options, [ets_option]` – The options for ETS process.
+    - `{:n_lock_partitions, pos_integer}` - A positive integer representing
+      the desired number of lock partitions
 
   In addition, following ETS options are supported:
     - `:set` - An ETS table will be of the `:set` type (default).
@@ -163,10 +166,12 @@ defmodule ConCache do
     options =
       Keyword.merge(options, ttl: options[:global_ttl], ttl_check: options[:ttl_check_interval])
 
+    n_lock_partitions = Keyword.get(options, :n_lock_partitions, System.schedulers_online())
+
     with :ok <- validate_ttl(options[:ttl_check_interval], options[:global_ttl]) do
       Supervisor.start_link(
         [
-          {ConCache.LockSupervisor, System.schedulers_online()},
+          {ConCache.LockSupervisor, n_lock_partitions},
           {Owner, options}
         ],
         [strategy: :one_for_all] ++ Keyword.take(options, [:name])
