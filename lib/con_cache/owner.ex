@@ -2,7 +2,7 @@ defmodule ConCache.Owner do
   @moduledoc false
 
   use GenServer
-  use Bitwise
+  import Bitwise
 
   defstruct ttl_check: nil,
             current_time: 1,
