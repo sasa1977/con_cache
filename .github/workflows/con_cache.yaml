@@ -54,6 +54,9 @@ jobs:
         os: ["ubuntu-20.04"]
         elixir: ["1.14", "1.13", "1.12"]
         otp: ["25", "24", "23"]
+        exclude:
+          - elixir: "1.12"
+            otp: "25"
 
     steps:
       - uses: actions/checkout@v2
