@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        os: ["ubuntu-latest"]
+        os: ["ubuntu-20.04"]
         elixir: ["1.14"]
         otp: ["25"]
 
@@ -51,7 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest"]
+        os: ["ubuntu-20.04"]
         elixir: ["1.14", "1.13", "1.12"]
         otp: ["25", "24", "23"]
 
