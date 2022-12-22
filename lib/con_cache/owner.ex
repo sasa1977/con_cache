@@ -95,7 +95,7 @@ defmodule ConCache.Owner do
     if :ets.info(ets, :keypos) > 1, do: throw({:error, :invalid_keypos})
     if :ets.info(ets, :protection) != :public, do: throw({:error, :invalid_protection})
 
-    if not (:ets.info(ets, :type) in [:set, :ordered_set, :bag, :duplicate_bag]),
+    if :ets.info(ets, :type) not in [:set, :ordered_set, :bag, :duplicate_bag],
       do: throw({:error, :invalid_type})
   end
 

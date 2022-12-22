@@ -3,51 +3,79 @@ name: "con_cache"
 on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-
+  lint:
+    name: Lint
+    runs-on: ${{ matrix.os }}
     env:
-      CACHE_VERSION: 1
+      MIX_ENV: dev
 
     strategy:
       matrix:
-        include:
-          - elixir: 1.7.0
-            otp: 20.1
-          - elixir: 1.11.3
-            otp: 23.1
+        os: ["ubuntu-20.04"]
+        elixir: ["1.14"]
+        otp: ["25"]
 
     steps:
       - uses: actions/checkout@v2
 
-      - uses: erlef/setup-elixir@v1
+      - uses: erlef/setup-beam@v1
         with:
+          otp-version: ${{ matrix.otp }}
           elixir-version: ${{ matrix.elixir }}
-          otp-version: ${{matrix.otp}}
+          version-type: strict
+
+      - uses: actions/cache@v2
+        with:
+          path: deps
+          key: ${{ matrix.os }}-otp_${{ matrix.otp }}-elixir_${{ matrix.elixir }}-mix_${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ matrix.os }}-otp_${{ matrix.otp }}-elixir_${{ matrix.elixir }}-mix_
+
+      - run: mix deps.get
+
+      - run: mix deps.compile
+
+      - run: mix format --check-formatted
+
+      - run: mix deps.unlock --check-unused
+
+      - run: mix dialyzer
+
+      - run: mix docs
+
+  test:
+    runs-on: ${{ matrix.os }}
+    name: Test Elixir ${{ matrix.elixir }}, OTP ${{ matrix.otp }}, OS ${{ matrix.os }}
+    env:
+      MIX_ENV: test
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-20.04"]
+        elixir: ["1.14", "1.13", "1.12"]
+        otp: ["25", "24", "23"]
+        exclude:
+          - elixir: "1.12"
+            otp: "25"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp }}
+          elixir-version: ${{ matrix.elixir }}
+          version-type: strict
 
       - name: Restore cached deps
         uses: actions/cache@v2
         with:
-          path: |
-            deps
-             _build
-          key: deps-${{ env.CACHE_VERSION }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ github.ref }}-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
-          restore-keys: |
-            deps-${{ env.CACHE_VERSION }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ github.ref }}
-            deps-${{ env.CACHE_VERSION }}-${{ matrix.otp }}-${{ matrix.elixir }}
+          path: deps
+          key: ${{ matrix.os }}-otp_${{ matrix.otp }}-elixir_${{ matrix.elixir }}-mix_${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ matrix.os }}-otp_${{ matrix.otp }}-elixir_${{ matrix.elixir }}-mix_
 
       - run: mix deps.get
 
-      - name: Compile project
-        run: MIX_ENV=test mix compile --warnings-as-errors
+      - run: mix compile --warnings-as-errors
 
       - run: mix test
-
-      - if: matrix.elixir != '1.7.0'
-        run: mix format --check-formatted
-
-      - if: matrix.elixir != '1.7.0'
-        run: mix docs
-
-      - if: matrix.elixir != '1.7.0'
-        run: mix dialyzer
