@@ -78,6 +78,7 @@ defmodule ConCache.Owner do
       {:heir, _} = opt, acc -> append_option(acc, opt)
       {:write_concurrency, _} = opt, acc -> append_option(acc, opt)
       {:read_concurrency, _} = opt, acc -> append_option(acc, opt)
+      {:decentralized_counters, _} = opt, acc -> append_option(acc, opt)
       :ordered_set, acc -> %{acc | type: :ordered_set}
       :set, acc -> %{acc | type: :set}
       :bag, acc -> %{acc | type: :bag}
