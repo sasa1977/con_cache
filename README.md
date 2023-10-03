@@ -290,6 +290,7 @@ ConCache.start_link(ets_options: [
   :ordered_set,
   {:read_concurrency, true},
   {:write_concurrency, true},
+  {:decentralized_counters, true},
   {:heir, heir_pid}
 ])
 ```

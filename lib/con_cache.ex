@@ -67,6 +67,7 @@ defmodule ConCache do
           | {:heir, pid}
           | {:write_concurrency, boolean}
           | {:read_concurrency, boolean}
+          | {:decentralized_counters, boolean}
           | :ordered_set
           | :set
           | :bag
@@ -122,6 +123,7 @@ defmodule ConCache do
     - `:heir`
     - `:write_concurrency`
     - `:read_concurrency`
+    - `:decentralized_counters`
 
   ## Child specification
 
