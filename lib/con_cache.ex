@@ -254,7 +254,7 @@ defmodule ConCache do
   """
   @spec dirty_insert_new(t, key, store_value) :: :ok | {:error, :already_exists}
   def dirty_insert_new(cache_id, key, value),
-    do: Operations.insert_new(Owner.cache(cache_id), key, value)
+    do: Operations.dirty_insert_new(Owner.cache(cache_id), key, value)
 
   @doc """
   Updates the item, or stores new item if it doesn't exist.
