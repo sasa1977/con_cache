@@ -2,7 +2,8 @@ defmodule ConCache.Item do
   @moduledoc """
   This struct can be used in place of naked values to set per-item TTL values.
   """
-  defstruct value: nil, ttl: :infinity
+  @enforce_keys [:value, :ttl]
+  defstruct [:value, :ttl]
 
   @type t :: %ConCache.Item{
           value: ConCache.value(),
