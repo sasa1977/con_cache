@@ -54,37 +54,37 @@ Notice the `name: :my_cache` option. The resulting process will be registered un
 # Note: all of these requests run in the caller process, without going through
 # the started process.
 
-ConCache.put(:my_cache, key, value)         # inserts value or overwrites the old one
-ConCache.insert_new(:my_cache, key, value)  # inserts value or returns {:error, :already_exists}
-ConCache.get(:my_cache, key)
-ConCache.delete(:my_cache, key)
+ConCache.put(:my_cache, :key, "value")         # inserts value or overwrites the old one
+ConCache.insert_new(:my_cache, :key, "value")  # inserts value or returns {:error, :already_exists}
+ConCache.get(:my_cache, :key)
+ConCache.delete(:my_cache, :key)
 ConCache.size(:my_cache)
 
-ConCache.update(:my_cache, key, fn(old_value) ->
+ConCache.update(:my_cache, :key, fn(old_value) ->
   # This function is isolated on a row level. Modifications such as update, put, delete,
   # on this key will wait for this function to finish.
   # Modifications on other items are not affected.
   # Reads are always dirty.
 
-  {:ok, new_value}
+  {:ok, "new_value"}
 end)
 
 # Similar to update, but executes provided function only if item exists.
 # Otherwise returns {:error, :not_existing}
-ConCache.update_existing(:my_cache, key, fn(old_value) ->
-  {:ok, new_value}
+ConCache.update_existing(:my_cache, :key, fn(old_value) ->
+  {:ok, "new_value"}
 end)
 
 # Returns existing value, or calls function and stores the result.
 # If many processes simultaneously invoke this function for the same key, the function will be
 # executed only once, with all others reading the value from cache.
-ConCache.get_or_store(:my_cache, key, fn() ->
-  initial_value
+ConCache.get_or_store(:my_cache, :key, fn() ->
+  "initial_value"
 end)
 
 # Similar to get_or_store/3 but works with :ok/:error tuples.
 # The value is cached only if the function returns an :ok tuple.
-ConCache.fetch_or_store(:my_cache, key, fn ->
+ConCache.fetch_or_store(:my_cache, :key, fn ->
   case call_api() do
     # The processed value will be cached and returned as an :ok tuple.
     {:ok, data} -> {:ok, process_data(data)}
@@ -97,13 +97,13 @@ end)
 Dirty modifiers operate directly on ETS record without trying to acquire the row lock:
 
 ```elixir
-ConCache.dirty_put(:my_cache, key, value)
-ConCache.dirty_insert_new(:my_cache, key, value)
-ConCache.dirty_delete(:my_cache, key)
-ConCache.dirty_update(:my_cache, key, fn(old_value) -> ... end)
-ConCache.dirty_update_existing(:my_cache, key, fn(old_value) -> ... end)
-ConCache.dirty_get_or_store(:my_cache, key, fn() -> ... end)
-ConCache.dirty_fetch_or_store(:my_cache, key, fn() -> ... end)
+ConCache.dirty_put(:my_cache, :key, "value")
+ConCache.dirty_insert_new(:my_cache, :key, "value")
+ConCache.dirty_delete(:my_cache, :key)
+ConCache.dirty_update(:my_cache, :key, fn(old_value) -> ... end)
+ConCache.dirty_update_existing(:my_cache, :key, fn(old_value) -> ... end)
+ConCache.dirty_get_or_store(:my_cache, :key, fn() -> ... end)
+ConCache.dirty_fetch_or_store(:my_cache, :key, fn() -> ... end)
 ```
 
 ### Callback
@@ -113,8 +113,8 @@ You can register your own function which will be invoked after an element is sto
 ```elixir
 {ConCache, [name: :my_cache, callback: fn(data) -> ... end]}
 
-ConCache.put(:my_cache, key, value)         # fun will be called with {:update, cache_pid, key, value}
-ConCache.delete(:my_cache, key)             # fun will be called with {:delete, cache_pid, key}
+ConCache.put(:my_cache, :key, "value")         # fun will be called with {:update, cache_pid, key, value}
+ConCache.delete(:my_cache, :key)             # fun will be called with {:delete, cache_pid, key}
 ```
 
 The delete callback is invoked before the item is deleted, so you still have the chance to fetch the value from the cache and do something with it.
@@ -145,26 +145,26 @@ However, the item lifetime is renewed on every modification. Reads don't extend 
 In addition, you can manually renew item's ttl:
 
 ```elixir
-ConCache.touch(:my_cache, key)
+ConCache.touch(:my_cache, :key)
 ```
 
-And you can override ttl for each item:
+If you would like to set a custom ttl for specific key, you can pass a `Concache.Item`` struct instead of a raw value:
 
 ```elixir
-ConCache.put(:my_cache, key, %ConCache.Item{value: value, ttl: ttl})
+ConCache.put(:my_cache, :key, %ConCache.Item{value: "value", ttl: :timer.seconds(25)})
 
-ConCache.update(:my_cache, key, fn(old_value) ->
-  {:ok, %ConCache.Item{value: new_value, ttl: ttl}}
+ConCache.update(:my_cache, :key, fn(old_value) ->
+  {:ok, %ConCache.Item{value: "new_value", ttl: :timer.seconds(25)}}
 end)
 ```
 
 And you can update an item without resetting the item's ttl:
 
 ```elixir
-ConCache.put(:my_cache, key, %ConCache.Item{value: value, ttl: :no_update})
+ConCache.put(:my_cache, :key, %ConCache.Item{value: "value", ttl: :no_update})
 
-ConCache.update(:my_cache, key, fn(old_value) ->
-  {:ok, %ConCache.Item{value: new_value, ttl: :no_update}}
+ConCache.update(:my_cache, :key, fn(old_value) ->
+  {:ok, %ConCache.Item{value: "new_value", ttl: :no_update}}
 end)
 ```
 
