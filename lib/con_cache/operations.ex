@@ -22,15 +22,18 @@ defmodule ConCache.Operations do
 
   def get(cache, key, opts \\ []) do
     case fetch(cache, key) do
-      {:ok, value} -> 
-        if Keyword.get(opts, :emit_telemetry?, true) do 
+      {:ok, value} ->
+        if Keyword.get(opts, :emit_telemetry?, true) do
           emit(cache, telemetry_hit())
         end
+
         value
-      :error -> 
-        if Keyword.get(opts, :emit_telemetry?, true) do 
+
+      :error ->
+        if Keyword.get(opts, :emit_telemetry?, true) do
           emit(cache, telemetry_miss())
         end
+
         nil
     end
   end
@@ -186,8 +189,10 @@ defmodule ConCache.Operations do
   def get_or_store(cache, key, fun) do
     if valid_ets_type?(cache) do
       case get(cache, key, emit_telemetry?: false) do
-        nil -> isolated_get_or_store(cache, key, fun)
-        value -> 
+        nil ->
+          isolated_get_or_store(cache, key, fun)
+
+        value ->
           emit(cache, telemetry_hit())
           value
       end

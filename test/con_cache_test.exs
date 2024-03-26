@@ -475,9 +475,15 @@ defmodule ConCacheTest do
     hit = ConCache.Operations.telemetry_hit()
     miss = ConCache.Operations.telemetry_miss()
 
-    :telemetry.attach_many("test", [
-      hit, miss
-    ], &TestTelemetryHandler.handle_event/4, nil)
+    :telemetry.attach_many(
+      "test",
+      [
+        hit,
+        miss
+      ],
+      &TestTelemetryHandler.handle_event/4,
+      nil
+    )
 
     ConCache.get(cache, :key)
     assert_receive {:telemetry_handled, ^miss, %{cache: %{owner_pid: ^cache}}}
@@ -494,9 +500,15 @@ defmodule ConCacheTest do
     hit = ConCache.Operations.telemetry_hit()
     miss = ConCache.Operations.telemetry_miss()
 
-    :telemetry.attach_many("test", [
-      hit, miss
-    ], &TestTelemetryHandler.handle_event/4, nil)
+    :telemetry.attach_many(
+      "test",
+      [
+        hit,
+        miss
+      ],
+      &TestTelemetryHandler.handle_event/4,
+      nil
+    )
 
     ConCache.get_or_store(cache, :key, fn -> :value end)
     assert_receive {:telemetry_handled, ^miss, %{cache: %{owner_pid: ^cache}}}
@@ -512,9 +524,15 @@ defmodule ConCacheTest do
     hit = ConCache.Operations.telemetry_hit()
     miss = ConCache.Operations.telemetry_miss()
 
-    :telemetry.attach_many("test", [
-      hit, miss
-    ], &TestTelemetryHandler.handle_event/4, nil)
+    :telemetry.attach_many(
+      "test",
+      [
+        hit,
+        miss
+      ],
+      &TestTelemetryHandler.handle_event/4,
+      nil
+    )
 
     ConCache.put(cache, :key, fn -> :value end)
     ConCache.get_or_store(cache, :key, fn -> :value end)
