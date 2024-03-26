@@ -354,8 +354,14 @@ defmodule ConCache do
   without any locking, so you can expect it to be fairly fast.
   """
   @spec fetch_or_store(t, key, fetch_or_store_fun) :: {:ok, value} | {:error, any}
-  def fetch_or_store(cache_id, key, fetch_or_store_fun),
-    do: Operations.fetch_or_store(Owner.cache(cache_id), key, fetch_or_store_fun)
+  def fetch_or_store(cache_id, key, fetch_or_store_fun) do
+    cache = Owner.cache(cache_id)
+
+    case Operations.fetch(cache, key) do
+      :error -> Operations.isolated_fetch_or_store(cache, key, fetch_or_store_fun)
+      {:ok, existing} -> {:ok, existing}
+    end
+  end
 
   @doc """
   Dirty equivalent of `fetch_or_store/3`.
