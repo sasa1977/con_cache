@@ -20,10 +20,18 @@ defmodule ConCache.Operations do
   defp lock_pid(cache, key),
     do: elem(cache.lock_pids, :erlang.phash2(key, tuple_size(cache.lock_pids)))
 
-  def get(cache, key) do
+  def get(cache, key, opts \\ []) do
     case fetch(cache, key) do
-      {:ok, value} -> value
-      :error -> nil
+      {:ok, value} -> 
+        if Keyword.get(opts, :emit_telemetry?, true) do 
+          emit(cache, telemetry_hit())
+        end
+        value
+      :error -> 
+        if Keyword.get(opts, :emit_telemetry?, true) do 
+          emit(cache, telemetry_miss())
+        end
+        nil
     end
   end
 
@@ -177,9 +185,11 @@ defmodule ConCache.Operations do
 
   def get_or_store(cache, key, fun) do
     if valid_ets_type?(cache) do
-      case get(cache, key) do
+      case get(cache, key, emit_telemetry?: false) do
         nil -> isolated_get_or_store(cache, key, fun)
-        value -> value
+        value -> 
+          emit(cache, telemetry_hit())
+          value
       end
     else
       raise_ets_type(cache)
@@ -194,13 +204,15 @@ defmodule ConCache.Operations do
 
   def dirty_get_or_store(cache, key, fun) do
     if valid_ets_type?(cache) do
-      case get(cache, key) do
+      case get(cache, key, emit_telemetry?: false) do
         nil ->
           new_value = fun.()
           dirty_put(cache, key, new_value)
+          emit(cache, telemetry_miss())
           value(new_value)
 
         existing ->
+          emit(cache, telemetry_hit())
           existing
       end
     else
@@ -281,5 +293,17 @@ defmodule ConCache.Operations do
 
   def touch(cache, key) do
     set_ttl(cache, key, :renew)
+  end
+
+  def telemetry_hit() do
+    [:con_cache, :stats, :hit]
+  end
+
+  def telemetry_miss() do
+    [:con_cache, :stats, :miss]
+  end
+
+  defp emit(cache, event) do
+    :telemetry.execute(event, %{}, %{cache: cache})
   end
 end
