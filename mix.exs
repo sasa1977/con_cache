@@ -18,7 +18,7 @@ defmodule ConCache.Mixfile do
 
   def application do
     [
-      applications: [:logger],
+      applications: [:logger, :telemetry],
       mod: {ConCache.Application, []}
     ]
   end
@@ -26,7 +26,8 @@ defmodule ConCache.Mixfile do
   defp deps do
     [
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.0", only: :dev, runtime: false}
+      {:dialyxir, "~> 1.0", only: :dev, runtime: false},
+      {:telemetry, "~> 1.0"}
     ]
   end
 
