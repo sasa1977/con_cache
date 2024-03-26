@@ -223,7 +223,7 @@ defmodule ConCache do
   `touch_on_read` option is set while starting the cache.
   """
   @spec get(t, key) :: value
-  def get(cache_id, key) do 
+  def get(cache_id, key) do
     case Operations.fetch(Owner.cache(cache_id), key) do
       :error -> nil
       {:ok, value} -> value
