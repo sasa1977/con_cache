@@ -223,7 +223,22 @@ defmodule ConCache do
   `touch_on_read` option is set while starting the cache.
   """
   @spec get(t, key) :: value
-  def get(cache_id, key), do: Operations.get(Owner.cache(cache_id), key)
+  def get(cache_id, key) do
+    case fetch(cache_id, key) do
+      :error -> nil
+      {:ok, value} -> value
+    end
+  end
+
+  @doc """
+  Fetches the item from cache.
+
+  Similar to `get/2`, but returns `{:ok, value}` if the item exists, or `:error` if not found.
+  """
+  @spec fetch(t, key) :: {:ok, value} | :error
+  def fetch(cache_id, key) do
+    Operations.fetch(Owner.cache(cache_id), key)
+  end
 
   @doc """
   Stores the item into the cache.
@@ -349,8 +364,12 @@ defmodule ConCache do
   without any locking, so you can expect it to be fairly fast.
   """
   @spec fetch_or_store(t, key, fetch_or_store_fun) :: {:ok, value} | {:error, any}
-  def fetch_or_store(cache_id, key, fetch_or_store_fun),
-    do: Operations.fetch_or_store(Owner.cache(cache_id), key, fetch_or_store_fun)
+  def fetch_or_store(cache_id, key, fetch_or_store_fun) do
+    case fetch(cache_id, key) do
+      :error -> Operations.isolated_fetch_or_store(Owner.cache(cache_id), key, fetch_or_store_fun)
+      {:ok, existing} -> {:ok, existing}
+    end
+  end
 
   @doc """
   Dirty equivalent of `fetch_or_store/3`.
