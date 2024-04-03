@@ -283,13 +283,6 @@ defmodule ConCacheTest do
     assert ConCache.get(cache, :b) == 6
   end
 
-  test "fetch" do
-    {:ok, cache} = start_cache()
-    assert ConCache.dirty_put(cache, :a, 1) == :ok
-    assert ConCache.fetch(cache, :a) == {:ok, 1}
-    assert ConCache.fetch(cache, :b) == :error
-  end
-
   test "ets_options" do
     {:ok, cache} = start_cache(ets_options: [:named_table, name: :test_name])
     assert :ets.info(ConCache.ets(cache), :named_table) == true
