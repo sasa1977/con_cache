@@ -220,7 +220,7 @@ defmodule ConCache.Operations do
     end
   end
 
-  def isolated_fetch_or_store(cache, key, fun) do
+  defp isolated_fetch_or_store(cache, key, fun) do
     isolated(cache, key, fn ->
       dirty_fetch_or_store(cache, key, fun)
     end)
