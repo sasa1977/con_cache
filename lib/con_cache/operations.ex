@@ -211,9 +211,11 @@ defmodule ConCache.Operations do
 
   def fetch_or_store(cache, key, fun) do
     if valid_ets_type?(cache) do
-      case fetch(cache, key) do
+      case fetch(cache, key, emit_telemetry?: false) do
         :error -> isolated_fetch_or_store(cache, key, fun)
-        {:ok, existing} -> {:ok, existing}
+        {:ok, existing} -> 
+          emit(telemetry_hit(), cache)
+          {:ok, existing}
       end
     else
       raise_ets_type(cache)
@@ -228,11 +230,12 @@ defmodule ConCache.Operations do
 
   def dirty_fetch_or_store(cache, key, fun) do
     if valid_ets_type?(cache) do
-      case fetch(cache, key) do
+      case fetch(cache, key, emit_telemetry?: false) do
         :error ->
           case fun.() do
             {:ok, new_value} ->
               dirty_put(cache, key, new_value)
+              emit(telemetry_miss(), cache)
               {:ok, value(new_value)}
 
             {:error, _reason} = error ->
