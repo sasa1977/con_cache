@@ -43,7 +43,8 @@ defmodule ConCache.Owner do
       acquire_lock_timeout: options[:acquire_lock_timeout] || 5000,
       callback: options[:callback],
       touch_on_read: options[:touch_on_read] || false,
-      lock_pids: List.to_tuple(ConCache.LockSupervisor.lock_pids(parent_process()))
+      lock_pids: List.to_tuple(ConCache.LockSupervisor.lock_pids(parent_process())),
+      name: options[:name]
     }
 
     {:ok, _} = Registry.register(ConCache, {parent_process(), __MODULE__}, cache)

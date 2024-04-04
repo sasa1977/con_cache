@@ -427,6 +427,7 @@ defmodule ConCacheTest do
       {:ok, _} = start_cache(name: name)
       ConCache.put(name, :a, 1)
       assert ConCache.get(name, :a) == 1
+      assert ConCache.Owner.cache(name).name == name
     end
   end
 
@@ -487,15 +488,15 @@ defmodule ConCacheTest do
       {:ok, hit_event: hit, miss_event: miss}
     end
 
-    test "get/2 emits telemetry events", %{hit_event: hit, miss_event: miss} do
-      {:ok, cache} = ConCache.start_link(ttl_check_interval: false)
+    test "get/2 emits telemetry events", %{hit_event: hit, miss_event: miss, test: test} do
+      {:ok, cache} = ConCache.start_link(ttl_check_interval: false, name: test)
 
       ConCache.get(cache, :key)
-      assert_receive {:telemetry_handled, ^miss, %{cache: %{owner_pid: ^cache}}}
+      assert_receive {:telemetry_handled, ^miss, %{cache: %{owner_pid: ^cache, name: ^test}}}
 
       ConCache.put(cache, :key, :value)
       ConCache.get(cache, :key)
-      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache}}}
+      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache, name: ^test}}}
       refute_receive _
     end
 
@@ -503,20 +504,20 @@ defmodule ConCacheTest do
       {:ok, cache} = ConCache.start_link(ttl_check_interval: false)
 
       ConCache.get_or_store(cache, :key, fn -> :value end)
-      assert_receive {:telemetry_handled, ^miss, %{cache: %{owner_pid: ^cache}}}
+      assert_receive {:telemetry_handled, ^miss, %{cache: %{owner_pid: ^cache, name: nil}}}
       refute_receive _
 
       ConCache.get_or_store(cache, :key, fn -> :value end)
-      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache}}}
+      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache, name: nil}}}
       refute_receive _
     end
 
-    test "get_or_store/3 emits telemetry hit after put/3 is made", %{hit_event: hit} do
-      assert {:ok, cache} = ConCache.start_link(ttl_check_interval: false)
+    test "get_or_store/3 emits telemetry hit after put/3 is made", %{hit_event: hit, test: test} do
+      assert {:ok, cache} = ConCache.start_link(ttl_check_interval: false, name: test)
 
       ConCache.put(cache, :key, fn -> :value end)
       ConCache.get_or_store(cache, :key, fn -> :value end)
-      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache}}}
+      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache, name: ^test}}}
       refute_receive _
     end
 
@@ -524,20 +525,20 @@ defmodule ConCacheTest do
       {:ok, cache} = ConCache.start_link(ttl_check_interval: false)
 
       ConCache.fetch_or_store(cache, :key, fn -> {:ok, :value} end)
-      assert_receive {:telemetry_handled, ^miss, %{cache: %{owner_pid: ^cache}}}
+      assert_receive {:telemetry_handled, ^miss, %{cache: %{owner_pid: ^cache, name: nil}}}
       refute_receive _
 
       ConCache.fetch_or_store(cache, :key, fn -> {:ok, :value} end)
-      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache}}}
+      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache, name: nil}}}
       refute_receive _
     end
 
-    test "fetch_or_store/3 emits telemetry hit after put/3 is made", %{hit_event: hit} do
-      assert {:ok, cache} = ConCache.start_link(ttl_check_interval: false)
+    test "fetch_or_store/3 emits telemetry hit after put/3 is made", %{hit_event: hit, test: test} do
+      assert {:ok, cache} = ConCache.start_link(ttl_check_interval: false, name: test)
 
       ConCache.put(cache, :key, fn -> {:ok, :value} end)
       ConCache.get_or_store(cache, :key, fn -> {:ok, :value} end)
-      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache}}}
+      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache, name: ^test}}}
       refute_receive _
     end
   end
