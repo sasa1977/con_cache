@@ -90,9 +90,9 @@ defmodule ConCache do
 
   @type update_fun :: (value -> {:ok, store_value} | {:error, any})
 
-  @type store_fun :: (() -> store_value)
+  @type store_fun :: (-> store_value)
 
-  @type fetch_or_store_fun() :: (() -> {:ok, store_value} | {:error, any})
+  @type fetch_or_store_fun() :: (-> {:ok, store_value} | {:error, any})
 
   @doc """
   Starts the server and creates an ETS table.
@@ -389,7 +389,7 @@ defmodule ConCache do
 
   These two operations are mutually exclusive.
   """
-  @spec isolated(t, key, nil | pos_integer, (() -> any)) :: any
+  @spec isolated(t, key, nil | pos_integer, (-> any)) :: any
   def isolated(cache_id, key, timeout \\ nil, fun),
     do: Operations.isolated(Owner.cache(cache_id), key, timeout, fun)
 
@@ -399,7 +399,7 @@ defmodule ConCache do
   If the lock can be acquired immediately, it will be acquired and the function
   will be invoked. Otherwise, an error is returned immediately.
   """
-  @spec try_isolated(t, key, nil | pos_integer, (() -> any)) :: {:error, :locked} | {:ok, any}
+  @spec try_isolated(t, key, nil | pos_integer, (-> any)) :: {:error, :locked} | {:ok, any}
   def try_isolated(cache_id, key, timeout \\ nil, on_success),
     do: Operations.try_isolated(Owner.cache(cache_id), key, timeout, on_success)
 end
