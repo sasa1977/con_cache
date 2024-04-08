@@ -51,7 +51,8 @@ defmodule ConCache do
     :acquire_lock_timeout,
     :callback,
     :touch_on_read,
-    :lock_pids
+    :lock_pids,
+    :name
   ]
 
   @type t :: pid | atom | {:global, any} | {:via, atom, any}
@@ -223,7 +224,12 @@ defmodule ConCache do
   `touch_on_read` option is set while starting the cache.
   """
   @spec get(t, key) :: value
-  def get(cache_id, key), do: Operations.get(Owner.cache(cache_id), key)
+  def get(cache_id, key) do
+    case Operations.fetch(Owner.cache(cache_id), key) do
+      :error -> nil
+      {:ok, value} -> value
+    end
+  end
 
   @doc """
   Stores the item into the cache.
