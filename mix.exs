@@ -18,7 +18,7 @@ defmodule ConCache.Mixfile do
 
   def application do
     [
-      applications: [:logger, :telemetry],
+      extra_applications: [:logger, :telemetry],
       mod: {ConCache.Application, []}
     ]
   end

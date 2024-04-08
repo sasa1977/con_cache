@@ -7,7 +7,7 @@ defmodule ConCache.Lock do
 
   @type key :: any
   @type result :: any
-  @type job :: (() -> result)
+  @type job :: (-> result)
 
   defstruct resources: Map.new(), monitors: Monitors.new()
 
