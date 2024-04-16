@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1
+
+- basic telemetry support
+
 ## 1.0
 
 - no new changes from 0.14.0
