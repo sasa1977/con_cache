@@ -221,6 +221,9 @@ defmodule ConCache do
   A read is always "dirty", meaning it doesn't block while someone is updating
   the item under the same key. A read doesn't expire TTL of the item, unless
   `touch_on_read` option is set while starting the cache.
+
+  Emits `[:con_cache, :stats, :hit]` telemetry event if the item is found, 
+  and `[:con_cache, :stats, :miss]` otherwise.
   """
   @spec get(t, key) :: value
   def get(cache_id, key), do: Operations.get(Owner.cache(cache_id), key)
@@ -320,6 +323,9 @@ defmodule ConCache do
 
   Note: if the item is already in the cache, this function amounts to a simple get
   without any locking, so you can expect it to be fairly fast.
+
+  Emits `[:con_cache, :stats, :hit]` telemetry event if the item is found, 
+  and `[:con_cache, :stats, :miss]` otherwise.
   """
   @spec get_or_store(t, key, store_fun) :: value
   def get_or_store(cache_id, key, store_fun),
@@ -347,6 +353,9 @@ defmodule ConCache do
 
   Note: if the item is already in the cache, this function amounts to a simple get
   without any locking, so you can expect it to be fairly fast.
+
+  Emits `[:con_cache, :stats, :hit]` telemetry event if the item is found, 
+  and `[:con_cache, :stats, :miss]` otherwise.
   """
   @spec fetch_or_store(t, key, fetch_or_store_fun) :: {:ok, value} | {:error, any}
   def fetch_or_store(cache_id, key, fetch_or_store_fun),
