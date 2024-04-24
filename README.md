@@ -148,7 +148,7 @@ In addition, you can manually renew item's ttl:
 ConCache.touch(:my_cache, :key)
 ```
 
-If you would like to set a custom ttl for specific key, you can pass a `Concache.Item`` struct instead of a raw value:
+If you would like to set a custom ttl for specific key, you can pass a `Concache.Item` struct instead of a raw value:
 
 ```elixir
 ConCache.put(:my_cache, :key, %ConCache.Item{value: "value", ttl: :timer.seconds(25)})
@@ -179,6 +179,33 @@ If needed, you may also pass false to `ttl_check_interval`. This effectively sto
   name: :my_cache,
   ttl_check_interval: false
 ]}
+```
+
+### Telemetry
+
+As of 1.1.0, ConCache emits [telemetry](https://github.com/beam-telemetry/telemetry) events. This allows the user to instrument their application to collect metrics about cache utilization.
+
+Currently, ConCache emits the following events:
+
+ - `[:con_cache, :stats, :hit]` - when cache key lookup succeeds
+ - `[:con_cache, :stats, :miss]` - when cache key is not found
+
+Each event comes with `%ConCache{}` struct within its metadata.
+
+Example handler:
+
+```elixir
+defmodule MyApp.HitMissRatioTracker do
+  require Logger
+
+  def handle_event([:con_cache, :stats, :hit], _measurements, %{cache: %{name: cache_name}}, _config) do
+    # ... aggregate hits
+  end
+
+  def handle_event([:con_cache, :stats, :miss], _measurements, %{cache: %{name: cache_name}}, _config) do
+    # ... aggregate misses
+  end
+end
 ```
 
 ## Supervision
