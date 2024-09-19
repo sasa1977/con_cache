@@ -10,8 +10,6 @@ defmodule ConCache.LockSupervisor do
   end
 
   def start_link(n_partitions) do
-    true = Code.ensure_loaded?(ConCache.Lock.Resource)
-
     Supervisor.start_link(
       Enum.map(
         1..n_partitions,
