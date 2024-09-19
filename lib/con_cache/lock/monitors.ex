@@ -12,7 +12,7 @@ defmodule ConCache.Lock.Monitors do
           %{
             count: 1,
             monitor: Process.monitor(pid),
-            lock_instances: Enum.into([lock_instance], MapSet.new())
+            lock_instances: MapSet.new([lock_instance])
           }
 
         {:ok, process_info} ->
