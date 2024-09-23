@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- slight performance improvement
+
 ## 1.1
 
 - basic telemetry support
