@@ -15,20 +15,16 @@ ConCache (Concurrent Cache) is an ETS based key/value storage with following add
 
 ## Usage in OTP applications
 
-Setup project and app dependency in your `mix.exs`:
+Add `con_cache` as a dependency to your `mix.exs`:
 
 ```elixir
-  ...
 
   defp deps do
-    [{:con_cache, "~> 1.0"}, ...]
+    [
+      {:con_cache, "~> 1.0"},
+      ...
+    ]
   end
-
-  def application do
-    [applications: [:con_cache, ...], ...]
-  end
-
-  ...
 ```
 
 A cache can be started using `ConCache.start` or `ConCache.start_link` functions. Both functions take two arguments - the first one being a list of ConCache options, and the second one a list of GenServer options for the process being started.
@@ -36,14 +32,12 @@ A cache can be started using `ConCache.start` or `ConCache.start_link` functions
 Typically you want to start the cache from a supervisor:
 
 ```elixir
-Supervisor.start_link(
-  [
-    ...
-    {ConCache, [name: :my_cache, ttl_check_interval: false]}
-    ...
-  ],
+children = [
+  {ConCache, [name: :my_cache, ttl_check_interval: false]}
   ...
-)
+]
+
+Supervisor.start_link(children, options)
 ```
 
 For OTP apps, you can generally find this in `lib/<myapp>.ex`. In the Phoenix web framework, look in the `start` function and add the worker to the `children` list.
