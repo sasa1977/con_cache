@@ -541,6 +541,54 @@ defmodule ConCacheTest do
       assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache, name: ^test}}}
       refute_receive _
     end
+
+    test "dirty_get_or_store/3 emits telemetry events", %{hit_event: hit, miss_event: miss} do
+      {:ok, cache} = ConCache.start_link(ttl_check_interval: false)
+
+      ConCache.dirty_get_or_store(cache, :key, fn -> :value end)
+      assert_receive {:telemetry_handled, ^miss, %{cache: %{owner_pid: ^cache, name: nil}}}
+      refute_receive _
+
+      ConCache.dirty_get_or_store(cache, :key, fn -> :value end)
+      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache, name: nil}}}
+      refute_receive _
+    end
+
+    test "dirty_get_or_store/3 emits telemetry hit after put/3 is made", %{
+      hit_event: hit,
+      test: test
+    } do
+      assert {:ok, cache} = ConCache.start_link(ttl_check_interval: false, name: test)
+
+      ConCache.put(cache, :key, fn -> :value end)
+      ConCache.dirty_get_or_store(cache, :key, fn -> :value end)
+      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache, name: ^test}}}
+      refute_receive _
+    end
+
+    test "dirty_fetch_or_store/3 emits telemetry events", %{hit_event: hit, miss_event: miss} do
+      {:ok, cache} = ConCache.start_link(ttl_check_interval: false)
+
+      ConCache.dirty_fetch_or_store(cache, :key, fn -> {:ok, :value} end)
+      assert_receive {:telemetry_handled, ^miss, %{cache: %{owner_pid: ^cache, name: nil}}}
+      refute_receive _
+
+      ConCache.dirty_fetch_or_store(cache, :key, fn -> {:ok, :value} end)
+      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache, name: nil}}}
+      refute_receive _
+    end
+
+    test "dirty_fetch_or_store/3 emits telemetry hit after put/3 is made", %{
+      hit_event: hit,
+      test: test
+    } do
+      assert {:ok, cache} = ConCache.start_link(ttl_check_interval: false, name: test)
+
+      ConCache.put(cache, :key, fn -> {:ok, :value} end)
+      ConCache.dirty_get_or_store(cache, :key, fn -> {:ok, :value} end)
+      assert_receive {:telemetry_handled, ^hit, %{cache: %{owner_pid: ^cache, name: ^test}}}
+      refute_receive _
+    end
   end
 
   defp start_cache(opts \\ []) do
