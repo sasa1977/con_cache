@@ -202,6 +202,7 @@ defmodule ConCache.Operations do
           value(new_value)
 
         {:ok, existing} ->
+          emit(telemetry_hit(), cache)
           existing
       end
     else
@@ -250,6 +251,7 @@ defmodule ConCache.Operations do
           end
 
         {:ok, _value} = existing ->
+          emit(telemetry_hit(), cache)
           existing
       end
     else
